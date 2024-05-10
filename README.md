@@ -1,7 +1,7 @@
 # NFC_inventaire
 Système pour lire une puce NFC et donner des critères de qualité dans une DB API REST
 
-zf240510.2158
+zf240511.0001
 
 **ATTENTION, documentation en cours de rédaction et le schéma n'est pas encore fait :-(  zf240510.1444**
 
@@ -17,8 +17,8 @@ Il faudra que le système soit totalement waterproof à la projection et que l'i
 
 
 ## Moyens
-J'ai utilisé pour ce projet un esp32-c3 super mini
-
+### J'ai utilisé pour ce projet
+#### un esp32-c3 super mini
 https://grabcad.com/library/esp32-c3-supermini-1
 
 https://fr.aliexpress.com/item/1005006170575141.html
@@ -27,28 +27,23 @@ https://www.studiopieters.nl/esp32-c3-pinout/
 
 https://forum.fritzing.org/t/need-esp32-c3-super-mini-board-model/20561
 
-
-Un lecteur de puces NFC
-
+#### Un lecteur de puces NFC
 https://www.aliexpress.com/item/1005006005040320.html
 
 https://randomnerdtutorials.com/security-access-using-mfrc522-rfid-reader-with-arduino/
 
 https://www.instructables.com/Using-Mifare-Ultralight-C-With-RC522-on-Arduino/
 
-
 https://www.arduino.cc/reference/en/libraries/mfrc522/
+
+https://forum.fritzing.org/uploads/default/original/2X/3/3bd6227b905a571e0d28ae941e6b9554a32d2a9a.fzpz
 
 https://github.com/miguelbalboa/rfid/tree/master/doc/fritzing
 
-
-Un interrupteur analogique
-
+#### Un interrupteur analogique
 https://www.aliexpress.com/item/1005003404607069.html
 
-
-Des switches capacitifs
-
+#### Des switches capacitifs
 https://www.aliexpress.com/item/1005006087171183.html
 
 
