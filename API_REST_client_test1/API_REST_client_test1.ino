@@ -1,7 +1,7 @@
 // Petit test pour voir comment accéder à une API REST sur un serveur NocoDB avec un esp32-c3
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240511.1928"
+#define zVERSION "zf240511.1949"
 
 //
 
@@ -14,7 +14,10 @@
 const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASSWORD;
 
-const char* serverName = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records?limit=25&shuffle=0&offset=0";
+// const char* serverName = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records?limit=25&shuffle=0&offset=0";
+const char* serverName = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records?viewId=vwwm6yz0uhytc9er&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
+
+
 
 String token = apiToken;
 
