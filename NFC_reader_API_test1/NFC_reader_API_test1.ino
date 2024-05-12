@@ -1,7 +1,7 @@
 // Petit test pour voir comment lire une puce NFC et accéder à une API REST sur un serveur NocoDB avec un esp32-c3
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240512.1332"
+#define zVERSION "zf240512.1606"
 /*
 Utilisation:
 
@@ -37,6 +37,9 @@ https://chat.mistral.ai/    pour toute la partie API REST ᕗ
  * Signal      Pin          Pin
  * -----------------------------------------------------------------------------------------
  * RST/Reset   RST          GPIO8
+//
+// ATTENTION, il faudra changer la pin RST pour le lecteur RFID RC522 car elle est utilisée par la led builting zf240512.1246
+//
  * SPI SS      SDA(SS)      GPIO7
  * SPI MOSI    MOSI         GPIO6
  * SPI MISO    MISO         GPIO5
@@ -53,11 +56,9 @@ https://chat.mistral.ai/    pour toute la partie API REST ᕗ
 // General
 const int ledPin = 8;    // the number of the LED pin
 //
-// ATTENTION, il faudra changer la pin REST pour le lecteur RFID RC 522 car elle est utilisée par la led builting zf240512.1246
+// ATTENTION, il faudra changer la pin RST pour le lecteur RFID RC522 car elle est utilisée par la led builting zf240512.1246
 //
 const int buttonPin = 9;  // the number of the pushbutton pin
-int switchAnaPin = A0;    // select the input pin for switches analog
-long zIndex = 0;          // variable to store the Index from DB
 float rrsiLevel = 0;      // variable to store the RRSI level
 
 
@@ -93,11 +94,11 @@ static void ConnectWiFi() {
 // API JSON
 #include <ArduinoJson.h>
 
+const char* token = apiToken;
 const char* apiGetIndex = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records?viewId=vwwm6yz0uhytc9er&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecord = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records";
-const char* token = apiToken;
 
-static void sendToDB() {
+static void sendToDB(const char * zComment) {
   if (WiFi.status() == WL_CONNECTED) {
 
     // Efectuer la requête GET pour récupérer l'Index du dernier enregistrement
@@ -105,7 +106,6 @@ static void sendToDB() {
     http.addHeader("accept", "application/json");
     http.addHeader("xc-token", token);
     int httpCode = http.GET();
-
     if (httpCode > 0) {
       if (httpCode == HTTP_CODE_OK) {
         String payload = http.getString();
@@ -130,7 +130,8 @@ static void sendToDB() {
         // Créer le corps de la requête POST
         StaticJsonDocument<200> reqBody;
         reqBody["Index"] = index;
-        reqBody["Commentaire"] = "toto";
+        reqBody["RRSI"] = rrsiLevel;
+        reqBody["Commentaire"] = zComment;
         String jsonReqBody;
         serializeJson(reqBody, jsonReqBody);
 
@@ -139,10 +140,8 @@ static void sendToDB() {
         http.addHeader("Content-Type", "application/json");
         http.addHeader("xc-token", token);
         httpCode = http.POST(jsonReqBody);
-
         if (httpCode > 0) {
           USBSerial.printf("POST request response code: %d\n", httpCode);
-
           if (httpCode == HTTP_CODE_OK) {
             String response = http.getString();
             USBSerial.println("POST request response:");
@@ -151,20 +150,16 @@ static void sendToDB() {
         } else {
           USBSerial.println("Error on POST request");
         }
-
-
       } else {
         USBSerial.printf("Error on HTTP request: %d\n", httpCode);
       }
     } else {
       USBSerial.println("Error on HTTP request");
     }
-
     http.end();
   } else {
     USBSerial.println("Error in WiFi connection");
   }
-
 }
 
 
@@ -172,15 +167,20 @@ static void sendToDB() {
 
 
 void setup() {
+    pinMode(ledPin, OUTPUT);
+    digitalWrite(ledPin, LOW);
+    delay(500);
+    digitalWrite(ledPin, HIGH);
+
     USBSerial.begin(19200);
     USBSerial.setDebugOutput(true);       //pour voir les messages de debug des libs sur la console série !
-    delay(3000);  //le temps de passer sur la Serial Monitor ;-)
+    delay(3000);                          //le temps de passer sur la Serial Monitor ;-)
     USBSerial.println("\n\n\n\n**************************************\nCa commence !\n");
 
-    // digitalWrite(ledPin, HIGH);
+    digitalWrite(ledPin, HIGH);
     USBSerial.println("Connect WIFI !");
     ConnectWiFi();
-    // digitalWrite(ledPin, LOW);
+    digitalWrite(ledPin, LOW);
     delay(200); 
 
     USBSerial.println("Et en avant pour la connexion à la DB !");
@@ -188,10 +188,15 @@ void setup() {
     USBSerial.println(apiGetIndex);
     USBSerial.print("et comme apiPostNewRecord: ");
     USBSerial.println(apiPostNewRecord);
-    sendToDB();
+
+    sendToDB("tutu 1556");
+    digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
+    digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
+    digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
+
+
 }
 
 
 void loop() {
-
 }
