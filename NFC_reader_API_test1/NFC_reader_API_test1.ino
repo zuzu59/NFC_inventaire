@@ -1,7 +1,7 @@
 // Petit test pour voir comment lire une puce NFC et accéder à une API REST sur un serveur NocoDB avec un esp32-c3
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240512.1319"
+#define zVERSION "zf240512.1332"
 /*
 Utilisation:
 
@@ -92,18 +92,18 @@ static void ConnectWiFi() {
 
 // API JSON
 #include <ArduinoJson.h>
-// const char* serverName = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records?limit=25&shuffle=0&offset=0";
-const char* serverName = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records?viewId=vwwm6yz0uhytc9er&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
-String token = apiToken;
+
+const char* apiGetIndex = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records?viewId=vwwm6yz0uhytc9er&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
+const char* apiPostNewRecord = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records";
+const char* token = apiToken;
 
 static void sendToDB() {
   if (WiFi.status() == WL_CONNECTED) {
-    // HTTPClient http;
 
-    http.begin(serverName);
+    // Efectuer la requête GET pour récupérer l'Index du dernier enregistrement
+    http.begin(apiGetIndex);
     http.addHeader("accept", "application/json");
     http.addHeader("xc-token", token);
-
     int httpCode = http.GET();
 
     if (httpCode > 0) {
@@ -127,20 +127,17 @@ static void sendToDB() {
         USBSerial.print("Index incremented: ");
         USBSerial.println(index);
 
-
-
         // Créer le corps de la requête POST
         StaticJsonDocument<200> reqBody;
         reqBody["Index"] = index;
         reqBody["Commentaire"] = "toto";
-
         String jsonReqBody;
         serializeJson(reqBody, jsonReqBody);
 
-        // Effectuer la requête POST
+        // Effectuer la requête POST pour créer le nouvel enregistrement
+        http.begin(apiPostNewRecord);
         http.addHeader("Content-Type", "application/json");
         http.addHeader("xc-token", token);
-
         httpCode = http.POST(jsonReqBody);
 
         if (httpCode > 0) {
@@ -187,8 +184,10 @@ void setup() {
     delay(200); 
 
     USBSerial.println("Et en avant pour la connexion à la DB !");
-    USBSerial.print("serverName: ");
-    USBSerial.println(serverName);
+    USBSerial.print("\nAvec comme apiGetIndex: ");
+    USBSerial.println(apiGetIndex);
+    USBSerial.print("et comme apiPostNewRecord: ");
+    USBSerial.println(apiPostNewRecord);
     sendToDB();
 }
 
