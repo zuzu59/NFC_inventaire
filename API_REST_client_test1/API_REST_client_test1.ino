@@ -1,7 +1,7 @@
 // Petit test pour voir comment accéder à une API REST sur un serveur NocoDB avec un esp32-c3
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240511.1949"
+#define zVERSION "zf240512.0913"
 
 //
 
@@ -10,6 +10,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include "secrets.h"
+#include <ArduinoJson.h>
 
 const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASSWORD;
@@ -55,6 +56,30 @@ void loop() {
       if (httpCode == HTTP_CODE_OK) {
         String payload = http.getString();
         USBSerial.println(payload);
+
+        // Allouer un objet DynamicJsonDocument pour stocker le JSON
+        DynamicJsonDocument doc(1024);
+
+        // Désérialiser le JSON
+        DeserializationError error = deserializeJson(doc, payload);
+        if (error) {
+          USBSerial.print(F("deserializeJson() failed: "));
+          USBSerial.println(error.f_str());
+          return;
+        }
+
+        // Récupérer le champ "Index" et l'incrémenter
+        long index = doc["list"][0]["Index"].as<long>() + 1;
+        USBSerial.print("Index incremented: ");
+        USBSerial.println(index);
+
+
+
+
+
+
+
+
       } else {
         USBSerial.printf("Error on HTTP request: %d\n", httpCode);
       }
