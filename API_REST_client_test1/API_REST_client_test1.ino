@@ -1,7 +1,7 @@
 // Petit test pour voir comment accéder à une API REST sur un serveur NocoDB avec un esp32-c3
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240512.0913"
+#define zVERSION "zf240512.0953"
 
 //
 
@@ -72,6 +72,36 @@ void loop() {
         long index = doc["list"][0]["Index"].as<long>() + 1;
         USBSerial.print("Index incremented: ");
         USBSerial.println(index);
+
+
+
+        // Créer le corps de la requête POST
+        StaticJsonDocument<200> reqBody;
+        reqBody["Index"] = index;
+        reqBody["Commentaire"] = "toto";
+
+        String jsonReqBody;
+        serializeJson(reqBody, jsonReqBody);
+
+        // Effectuer la requête POST
+        http.addHeader("Content-Type", "application/json");
+        http.addHeader("xc-token", token);
+
+        httpCode = http.POST(jsonReqBody);
+
+        if (httpCode > 0) {
+          USBSerial.printf("POST request response code: %d\n", httpCode);
+
+          if (httpCode == HTTP_CODE_OK) {
+            String response = http.getString();
+            USBSerial.println("POST request response:");
+            USBSerial.println(response);
+          }
+        } else {
+          USBSerial.println("Error on POST request");
+        }
+
+
 
 
 
