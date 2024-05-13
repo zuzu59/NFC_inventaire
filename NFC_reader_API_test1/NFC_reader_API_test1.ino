@@ -1,7 +1,7 @@
 // Petit test pour voir comment lire une puce NFC et accéder à une API REST sur un serveur NocoDB avec un esp32-c3
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240512.1606"
+#define zVERSION "zf240513.2352"
 /*
 Utilisation:
 
@@ -60,7 +60,9 @@ const int ledPin = 8;    // the number of the LED pin
 //
 const int buttonPin = 9;  // the number of the pushbutton pin
 float rrsiLevel = 0;      // variable to store the RRSI level
-
+const int zPulseDelayOn = 100;    // délai pour le blink
+const int zPulseDelayOff = 200;    // délai pour le blink
+const int zPulseDelayWait = 500;    // délai pour le blink
 
 // WIFI
 #include <WiFi.h>
@@ -89,6 +91,25 @@ static void ConnectWiFi() {
     USBSerial.print("RRSI: ");
     USBSerial.println(rrsiLevel);
 }
+
+
+
+
+
+
+
+//
+// OTA WEB server
+//
+const char* host = "esp32-c3";
+#include "otaWebServer.h"
+
+
+
+
+
+
+
 
 
 // API JSON
@@ -176,6 +197,7 @@ void setup() {
     USBSerial.setDebugOutput(true);       //pour voir les messages de debug des libs sur la console série !
     delay(3000);                          //le temps de passer sur la Serial Monitor ;-)
     USBSerial.println("\n\n\n\n**************************************\nCa commence !\n");
+    USBSerial.println(zVERSION);
 
     digitalWrite(ledPin, HIGH);
     USBSerial.println("Connect WIFI !");
@@ -183,13 +205,17 @@ void setup() {
     digitalWrite(ledPin, LOW);
     delay(200); 
 
+    // start OTA server
+    otaWebServer();
+
+
     USBSerial.println("Et en avant pour la connexion à la DB !");
     USBSerial.print("\nAvec comme apiGetIndex: ");
     USBSerial.println(apiGetIndex);
     USBSerial.print("et comme apiPostNewRecord: ");
     USBSerial.println(apiPostNewRecord);
 
-    sendToDB("tutu 1556");
+    sendToDB(zVERSION);
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
@@ -199,4 +225,12 @@ void setup() {
 
 
 void loop() {
+
+  // OTA loop
+  server.handleClient();
+
+  digitalWrite(ledPin, LOW); delay(zPulseDelayOn); digitalWrite(ledPin, HIGH); delay(zPulseDelayOff);
+  digitalWrite(ledPin, LOW); delay(zPulseDelayOn); digitalWrite(ledPin, HIGH); delay(zPulseDelayOff);
+  delay(zPulseDelayWait);
+
 }
