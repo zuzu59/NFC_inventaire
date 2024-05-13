@@ -1,7 +1,7 @@
 // Petit test pour voir comment lire une puce NFC et accéder à une API REST sur un serveur NocoDB avec un esp32-c3
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240513.2352"
+#define zVERSION "zf240514.0025"
 /*
 Utilisation:
 
@@ -107,6 +107,21 @@ const char* host = "esp32-c3";
 
 
 
+#include <FastLED.h>
+
+// How many leds in your strip?
+#define NUM_LEDS 8
+
+// For led chips like WS2812, which have a data line, ground, and power, you just
+// need to define DATA_PIN.  For led chipsets that are SPI based (four wires - data, clock,
+// ground, and power), like the LPD8806 define both DATA_PIN and CLOCK_PIN
+// Clock pin only needed for SPI based chipsets when not using hardware SPI
+#define DATA_PIN 3
+// #define CLOCK_PIN 13
+
+// Define the array of leds
+CRGB leds[NUM_LEDS];
+
 
 
 
@@ -199,16 +214,24 @@ void setup() {
     USBSerial.println("\n\n\n\n**************************************\nCa commence !\n");
     USBSerial.println(zVERSION);
 
+    // FastLED.addLeds<WS2812, DATA_PIN, RGB>(leds, NUM_LEDS);  // GRB ordering is typical
+    FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);  // GRB ordering is assumed
+    leds[7] = CRGB::Blue;
+    FastLED.show();
+
     digitalWrite(ledPin, HIGH);
     USBSerial.println("Connect WIFI !");
     ConnectWiFi();
+    leds[7] = CRGB::Green;
+    FastLED.show();
     digitalWrite(ledPin, LOW);
     delay(200); 
 
     // start OTA server
     otaWebServer();
 
-
+    leds[1] = CRGB::Blue;
+    FastLED.show();
     USBSerial.println("Et en avant pour la connexion à la DB !");
     USBSerial.print("\nAvec comme apiGetIndex: ");
     USBSerial.println(apiGetIndex);
@@ -219,7 +242,11 @@ void setup() {
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
-
+    leds[1] = CRGB::Green;
+    FastLED.show();
+    delay(3000); 
+    leds[1] = CRGB::Black;
+    FastLED.show();
 
 }
 
