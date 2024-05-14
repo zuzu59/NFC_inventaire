@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240514.1529"
+#define zVERSION "zf240514.1545"
 /*
 Utilisation:
 
@@ -173,6 +173,33 @@ static void sendToDB(const char * zComment) {
 
 
 
+// RFID MFRC522
+#include <SPI.h>
+#include <MFRC522.h>
+
+#define SS_PIN 7
+#define RST_PIN 10               // ATTENTION changé de 8 à 9 le 240512.1616, car au de la LED BUILTIN
+ 
+MFRC522 rfid(SS_PIN, RST_PIN);  // Instance of the class
+MFRC522::MIFARE_Key key; 
+
+// Init array that will store new NUID 
+byte nuidPICC[4];
+
+
+// Helper routine to dump a byte array as hex values to Serial. 
+void printHex(byte *buffer, byte bufferSize) {
+    for (byte i = 0; i < bufferSize; i++) {
+      USBSerial.print(buffer[i] < 0x10 ? " 0" : " ");
+      USBSerial.print(buffer[i], HEX);
+    }
+}
+
+
+
+
+
+
 void setup() {
     pinMode(ledPin, OUTPUT);
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
@@ -207,6 +234,7 @@ void setup() {
     USBSerial.print("et comme apiPostNewRecord: ");
     USBSerial.println(apiPostNewRecord);
 
+    // start API REST
     sendToDB(zVERSION);
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
@@ -214,12 +242,83 @@ void setup() {
     leds[6] = CRGB::Green; FastLED.show();
     delay(3000); 
     leds[6] = CRGB::Black; FastLED.show();
+
+    // start RFID
+    SPI.begin(); // Init SPI bus
+    rfid.PCD_Init(); // Init MFRC522 
+
+    for (byte i = 0; i < 6; i++) {
+      key.keyByte[i] = 0xFF;
+    }
+
+    USBSerial.println(F("This code scan ALL MIFARE UID ᕗ"));
+    USBSerial.print(F("Using the following key:"));
+    printHex(key.keyByte, MFRC522::MF_KEY_SIZE);
+
+
+
+
+
+
+
 }
 
 
 void loop() {
   // OTA loop
   server.handleClient();
+
+
+
+
+
+    // Reset the loop if no new card present on the sensor/reader. This saves the entire process when idle.
+    if ( ! rfid.PICC_IsNewCardPresent())
+      return;
+
+    // Verify if the NUID has been readed
+    if ( ! rfid.PICC_ReadCardSerial())
+      return;
+
+    digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
+    digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
+    digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
+
+    USBSerial.print(F("\n\n*****************\nPICC type: "));
+    MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
+    USBSerial.println(rfid.PICC_GetTypeName(piccType));
+
+    if (rfid.uid.uidByte[0] != nuidPICC[0] || 
+      rfid.uid.uidByte[1] != nuidPICC[1] || 
+      rfid.uid.uidByte[2] != nuidPICC[2] || 
+      rfid.uid.uidByte[3] != nuidPICC[3] ) {
+      USBSerial.println(F("A new card has been detected."));
+
+      // Store NUID into nuidPICC array
+      for (byte i = 0; i < 4; i++) {
+        nuidPICC[i] = rfid.uid.uidByte[i];
+      }
+    
+      USBSerial.println(F("The NUID tag is:"));
+      USBSerial.print(F("In hex: "));
+      printHex(rfid.uid.uidByte, rfid.uid.size);
+      USBSerial.println();
+      // USBSerial.print(F("In dec: "));
+      // printDec(rfid.uid.uidByte, rfid.uid.size);
+      // USBSerial.println();
+    }
+    else USBSerial.println(F("Card read previously."));
+
+    // Halt PICC
+    rfid.PICC_HaltA();
+
+    // Stop encryption on PCD
+    rfid.PCD_StopCrypto1();
+
+
+
+
+
 
   digitalWrite(ledPin, LOW); delay(zPulseDelayOn); digitalWrite(ledPin, HIGH); delay(zPulseDelayOff);
   digitalWrite(ledPin, LOW); delay(zPulseDelayOn); digitalWrite(ledPin, HIGH); delay(zPulseDelayOff);

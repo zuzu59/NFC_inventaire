@@ -53,7 +53,7 @@ const int ledPin = 8;    // the number of the LED pin
 const int buttonPin = 9;  // the number of the pushbutton pin
 
 
-// MFRC522
+// RFID MFRC522
 #include <SPI.h>
 #include <MFRC522.h>
 
