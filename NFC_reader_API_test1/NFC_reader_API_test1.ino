@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240514.1635"
+#define zVERSION "zf240514.2042"
 /*
 Utilisation:
 
@@ -192,15 +192,17 @@ byte nuidPICC[4];
 void printHex(byte *buffer, byte bufferSize) {
     newRFID = "";
     for (byte i = 0; i < bufferSize; i++) {
-      newRFID += (buffer[i] < 0x10 ? " 0" : " ");
-      newRFID += String(buffer[i], HEX);
-      USBSerial.print(newRFID);
+      char hexStr[3]; // Crée un tableau temporaire pour stocker la valeur hexadécimale
+      sprintf(hexStr, "%02X", buffer[i]); // Convertit la valeur en hexadécimal et la stocke dans hexStr
+      newRFID += hexStr; // Concatène la valeur hexadécimale à newRFID
+      newRFID += " "; // Ajoute un espace après chaque octet
+    }
+    newRFID.trim(); // Supprime les espaces supplémentaires à la fin de la chaîne
 
 
-
+    USBSerial.print(newRFID);
       // USBSerial.print(buffer[i] < 0x10 ? " 0" : " ");
       // USBSerial.print(buffer[i], HEX);
-    }
 }
 
 
@@ -305,6 +307,16 @@ void loop() {
             nuidPICC[i] = rfid.uid.uidByte[i];
           }
         
+
+          USBSerial.print("la valeur brute hexa est: ");
+          for (byte i = 0; i < rfid.uid.size; i++) {
+            USBSerial.print(rfid.uid.uidByte[i], HEX);
+            USBSerial.print(" ");
+          }
+          USBSerial.println("");
+
+
+
           USBSerial.println(F("The NUID tag is:"));
           USBSerial.print(F("In hex: "));
           printHex(rfid.uid.uidByte, rfid.uid.size);
