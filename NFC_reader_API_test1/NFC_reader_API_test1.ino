@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240514.2042"
+#define zVERSION "zf240514.2108"
 /*
 Utilisation:
 
@@ -111,7 +111,7 @@ const char* token = apiToken;
 const char* apiGetIndex = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records?viewId=vwwm6yz0uhytc9er&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecord = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records";
 
-static void sendToDB(const char * zComment) {
+static void sendToDB(String zUidRfid, String zComment) {
   if (WiFi.status() == WL_CONNECTED) {
     // Efectuer la requête GET pour récupérer l'Index du dernier enregistrement
     http.begin(apiGetIndex);
@@ -139,6 +139,7 @@ static void sendToDB(const char * zComment) {
         StaticJsonDocument<200> reqBody;
 
         reqBody["Index"] = index;
+        reqBody["UID RFID"] = zUidRfid;
         reqBody["Commentaire"] = zComment;
         reqBody["RSSI"] = WiFi.RSSI();
         reqBody["IP"] = WiFi.localIP();
@@ -245,7 +246,7 @@ void setup() {
     USBSerial.println(apiPostNewRecord);
 
     // start API REST
-    sendToDB(zVERSION);
+    sendToDB("C'est le boot il n'y a pas de TAG !", zVERSION);
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
@@ -262,15 +263,6 @@ void setup() {
     }
 
     USBSerial.println(F("This code scan ALL MIFARE UID ᕗ"));
-    USBSerial.print(F("Using the following key:"));
-    printHex(key.keyByte, MFRC522::MF_KEY_SIZE);
-
-
-
-
-
-
-
 }
 
 
@@ -307,24 +299,16 @@ void loop() {
             nuidPICC[i] = rfid.uid.uidByte[i];
           }
         
-
-          USBSerial.print("la valeur brute hexa est: ");
-          for (byte i = 0; i < rfid.uid.size; i++) {
-            USBSerial.print(rfid.uid.uidByte[i], HEX);
-            USBSerial.print(" ");
-          }
-          USBSerial.println("");
-
-
-
+          leds[2] = CRGB::Green; FastLED.show();
           USBSerial.println(F("The NUID tag is:"));
           USBSerial.print(F("In hex: "));
           printHex(rfid.uid.uidByte, rfid.uid.size);
           USBSerial.println();
-          leds[2] = CRGB::Green; FastLED.show();
-          // USBSerial.print(F("In dec: "));
-          // printDec(rfid.uid.uidByte, rfid.uid.size);
-          // USBSerial.println();
+          leds[6] = CRGB::Green; FastLED.show();
+          sendToDB(newRFID, "Mais c'est toto !");
+          delay(3000); 
+          leds[6] = CRGB::Black; FastLED.show();
+
       } else {
         USBSerial.println(F("Card read previously."));
         leds[2] = CRGB::Orange; FastLED.show();
