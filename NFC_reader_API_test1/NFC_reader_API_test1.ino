@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240514.1242"
+#define zVERSION "zf240514.1303"
 /*
 Utilisation:
 
@@ -87,9 +87,8 @@ static void ConnectWiFi() {
     USBSerial.println("\nConnected to the WiFi network");
     USBSerial.print("Local ESP32 IP: ");
     USBSerial.println(WiFi.localIP());
-    rrsiLevel = WiFi.RSSI();
-    USBSerial.print("RRSI: ");
-    USBSerial.println(rrsiLevel);
+    USBSerial.print("RSSI: ");
+    USBSerial.println(WiFi.RSSI());
 }
 
 
@@ -137,9 +136,12 @@ static void sendToDB(const char * zComment) {
         USBSerial.println(index);
         // Créer le corps de la requête POST
         StaticJsonDocument<200> reqBody;
+
         reqBody["Index"] = index;
-        reqBody["RRSI"] = rrsiLevel;
         reqBody["Commentaire"] = zComment;
+        reqBody["RSSI"] = WiFi.RSSI();
+        reqBody["IP"] = WiFi.localIP();
+
         String jsonReqBody;
         serializeJson(reqBody, jsonReqBody);
         // Effectuer la requête POST pour créer le nouvel enregistrement
