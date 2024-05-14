@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240514.1607"
+#define zVERSION "zf240514.1635"
 /*
 Utilisation:
 
@@ -62,6 +62,7 @@ float rrsiLevel = 0;      // variable to store the RRSI level
 const int zPulseDelayOn = 100;    // délai pour le blink
 const int zPulseDelayOff = 200;    // délai pour le blink
 const int zPulseDelayWait = 500;    // délai pour le blink
+String newRFID = "00 00 00 00 00 00 00";
 
 
 // WIFI
@@ -189,9 +190,16 @@ byte nuidPICC[4];
 
 // Helper routine to dump a byte array as hex values to Serial. 
 void printHex(byte *buffer, byte bufferSize) {
+    newRFID = "";
     for (byte i = 0; i < bufferSize; i++) {
-      USBSerial.print(buffer[i] < 0x10 ? " 0" : " ");
-      USBSerial.print(buffer[i], HEX);
+      newRFID += (buffer[i] < 0x10 ? " 0" : " ");
+      newRFID += String(buffer[i], HEX);
+      USBSerial.print(newRFID);
+
+
+
+      // USBSerial.print(buffer[i] < 0x10 ? " 0" : " ");
+      // USBSerial.print(buffer[i], HEX);
     }
 }
 
