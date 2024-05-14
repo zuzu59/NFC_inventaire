@@ -1,7 +1,8 @@
 // Petit test pour voir comment lire une puce NFC et accéder à une API REST sur un serveur NocoDB avec un esp32-c3
+// Et grande nouveauté, avec le support de OTA \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240514.0025"
+#define zVERSION "zf240514.1242"
 /*
 Utilisation:
 
@@ -9,7 +10,10 @@ Astuce:
 
 Installation:
 
-Il faut disabled USB CDC On Boot et utiliser USBSerial. au lieu de Serial. pour la console !
+Pour les esp32-c3 super mini, il faut:
+ * choisir comme board ESP32C3 Dev Module
+ * disabled USB CDC On Boot et utiliser USBSerial. au lieu de Serial. pour la console !
+ * changer le schéma de la partition à Minimal SPIFFS (1.9MB APP with OTA/190kB SPIFFS)
 
 Pour le lecteur de NFC RFID RC522, il faut installer cette lib depuis le lib manager sur Arduino:
 https://github.com/miguelbalboa/rfid   (elle est vieille mais fonctionne encore super bien zf240510)
@@ -17,14 +21,16 @@ https://github.com/miguelbalboa/rfid   (elle est vieille mais fonctionne encore 
 Pour JSON, il faut installer cette lib:
 https://github.com/bblanchon/ArduinoJson
 
-Pour le analog buttons il faut installer ces lib: 
-https://github.com/rlogiacco/AnalogButtons
+Pour le stick LED RGB il faut installer cette lib: 
+https://github.com/FastLED/FastLED    (by Daniel Garcia)
 
 Sources:
 https://randomnerdtutorials.com/security-access-using-mfrc522-rfid-reader-with-arduino/
 https://forum.fritzing.org/t/need-esp32-c3-super-mini-board-model/20561
 https://www.aliexpress.com/item/1005006005040320.html
 https://randomnerdtutorials.com/esp32-useful-wi-fi-functions-arduino
+https://github.com/FastLED/FastLED/blob/master/examples/Blink/Blink.ino
+https://lastminuteengineers.com/esp32-ota-web-updater-arduino-ide/
 https://chat.mistral.ai/    pour toute la partie API REST ᕗ
 */
 
@@ -36,10 +42,7 @@ https://chat.mistral.ai/    pour toute la partie API REST ᕗ
  *             Reader/PCB   super mini
  * Signal      Pin          Pin
  * -----------------------------------------------------------------------------------------
- * RST/Reset   RST          GPIO8
-//
-// ATTENTION, il faudra changer la pin RST pour le lecteur RFID RC522 car elle est utilisée par la led builting zf240512.1246
-//
+ * RST/Reset   RST          GPIO10   ATTENTION changé de 8 à 10 le 240512.1616, au lieu de la LED BUILTIN
  * SPI SS      SDA(SS)      GPIO7
  * SPI MOSI    MOSI         GPIO6
  * SPI MISO    MISO         GPIO5
@@ -52,17 +55,14 @@ https://chat.mistral.ai/    pour toute la partie API REST ᕗ
 // #undef DEBUG
 
 
-
 // General
 const int ledPin = 8;    // the number of the LED pin
-//
-// ATTENTION, il faudra changer la pin RST pour le lecteur RFID RC522 car elle est utilisée par la led builting zf240512.1246
-//
 const int buttonPin = 9;  // the number of the pushbutton pin
 float rrsiLevel = 0;      // variable to store the RRSI level
 const int zPulseDelayOn = 100;    // délai pour le blink
 const int zPulseDelayOff = 200;    // délai pour le blink
 const int zPulseDelayWait = 500;    // délai pour le blink
+
 
 // WIFI
 #include <WiFi.h>
@@ -93,50 +93,26 @@ static void ConnectWiFi() {
 }
 
 
-
-
-
-
-
-//
 // OTA WEB server
-//
 const char* host = "esp32-c3";
 #include "otaWebServer.h"
 
 
-
-
+// Stick LED RGB
 #include <FastLED.h>
-
-// How many leds in your strip?
 #define NUM_LEDS 8
-
-// For led chips like WS2812, which have a data line, ground, and power, you just
-// need to define DATA_PIN.  For led chipsets that are SPI based (four wires - data, clock,
-// ground, and power), like the LPD8806 define both DATA_PIN and CLOCK_PIN
-// Clock pin only needed for SPI based chipsets when not using hardware SPI
 #define DATA_PIN 3
-// #define CLOCK_PIN 13
-
-// Define the array of leds
 CRGB leds[NUM_LEDS];
-
-
-
-
 
 
 // API JSON
 #include <ArduinoJson.h>
-
 const char* token = apiToken;
 const char* apiGetIndex = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records?viewId=vwwm6yz0uhytc9er&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecord = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records";
 
 static void sendToDB(const char * zComment) {
   if (WiFi.status() == WL_CONNECTED) {
-
     // Efectuer la requête GET pour récupérer l'Index du dernier enregistrement
     http.begin(apiGetIndex);
     http.addHeader("accept", "application/json");
@@ -146,10 +122,8 @@ static void sendToDB(const char * zComment) {
       if (httpCode == HTTP_CODE_OK) {
         String payload = http.getString();
         USBSerial.println(payload);
-
         // Allouer un objet DynamicJsonDocument pour stocker le JSON
         DynamicJsonDocument doc(1024);
-
         // Désérialiser le JSON
         DeserializationError error = deserializeJson(doc, payload);
         if (error) {
@@ -157,12 +131,10 @@ static void sendToDB(const char * zComment) {
           USBSerial.println(error.f_str());
           return;
         }
-
         // Récupérer le champ "Index" et l'incrémenter
         long index = doc["list"][0]["Index"].as<long>() + 1;
         USBSerial.print("Index incremented: ");
         USBSerial.println(index);
-
         // Créer le corps de la requête POST
         StaticJsonDocument<200> reqBody;
         reqBody["Index"] = index;
@@ -170,7 +142,6 @@ static void sendToDB(const char * zComment) {
         reqBody["Commentaire"] = zComment;
         String jsonReqBody;
         serializeJson(reqBody, jsonReqBody);
-
         // Effectuer la requête POST pour créer le nouvel enregistrement
         http.begin(apiPostNewRecord);
         http.addHeader("Content-Type", "application/json");
@@ -200,38 +171,34 @@ static void sendToDB(const char * zComment) {
 
 
 
-
-
 void setup() {
     pinMode(ledPin, OUTPUT);
-    digitalWrite(ledPin, LOW);
-    delay(500);
-    digitalWrite(ledPin, HIGH);
+    digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
+    digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
 
+    // start serial console
     USBSerial.begin(19200);
     USBSerial.setDebugOutput(true);       //pour voir les messages de debug des libs sur la console série !
     delay(3000);                          //le temps de passer sur la Serial Monitor ;-)
-    USBSerial.println("\n\n\n\n**************************************\nCa commence !\n");
+    USBSerial.println("\n\n\n\n**************************************\nCa commence !");
     USBSerial.println(zVERSION);
 
-    // FastLED.addLeds<WS2812, DATA_PIN, RGB>(leds, NUM_LEDS);  // GRB ordering is typical
+    // start LED RGB
     FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);  // GRB ordering is assumed
-    leds[7] = CRGB::Blue;
-    FastLED.show();
 
+    // start WIFI
+    leds[7] = CRGB::Blue; FastLED.show();
     digitalWrite(ledPin, HIGH);
     USBSerial.println("Connect WIFI !");
     ConnectWiFi();
-    leds[7] = CRGB::Green;
-    FastLED.show();
+    leds[7] = CRGB::Green; FastLED.show();
     digitalWrite(ledPin, LOW);
     delay(200); 
 
     // start OTA server
     otaWebServer();
 
-    leds[1] = CRGB::Blue;
-    FastLED.show();
+    leds[1] = CRGB::Blue; FastLED.show();
     USBSerial.println("Et en avant pour la connexion à la DB !");
     USBSerial.print("\nAvec comme apiGetIndex: ");
     USBSerial.println(apiGetIndex);
@@ -242,22 +209,17 @@ void setup() {
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
-    leds[1] = CRGB::Green;
-    FastLED.show();
+    leds[1] = CRGB::Green; FastLED.show();
     delay(3000); 
-    leds[1] = CRGB::Black;
-    FastLED.show();
-
+    leds[1] = CRGB::Black; FastLED.show();
 }
 
 
 void loop() {
-
   // OTA loop
   server.handleClient();
 
   digitalWrite(ledPin, LOW); delay(zPulseDelayOn); digitalWrite(ledPin, HIGH); delay(zPulseDelayOff);
   digitalWrite(ledPin, LOW); delay(zPulseDelayOn); digitalWrite(ledPin, HIGH); delay(zPulseDelayOff);
   delay(zPulseDelayWait);
-
 }
