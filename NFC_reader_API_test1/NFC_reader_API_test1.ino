@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240514.1303"
+#define zVERSION "zf240514.1529"
 /*
 Utilisation:
 
@@ -189,18 +189,18 @@ void setup() {
     FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);  // GRB ordering is assumed
 
     // start WIFI
-    leds[7] = CRGB::Blue; FastLED.show();
+    leds[0] = CRGB::Blue; FastLED.show();
     digitalWrite(ledPin, HIGH);
     USBSerial.println("Connect WIFI !");
     ConnectWiFi();
-    leds[7] = CRGB::Green; FastLED.show();
+    leds[0] = CRGB::Green; FastLED.show();
     digitalWrite(ledPin, LOW);
     delay(200); 
 
     // start OTA server
     otaWebServer();
 
-    leds[1] = CRGB::Blue; FastLED.show();
+    leds[6] = CRGB::Blue; FastLED.show();
     USBSerial.println("Et en avant pour la connexion à la DB !");
     USBSerial.print("\nAvec comme apiGetIndex: ");
     USBSerial.println(apiGetIndex);
@@ -211,9 +211,9 @@ void setup() {
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
-    leds[1] = CRGB::Green; FastLED.show();
+    leds[6] = CRGB::Green; FastLED.show();
     delay(3000); 
-    leds[1] = CRGB::Black; FastLED.show();
+    leds[6] = CRGB::Black; FastLED.show();
 }
 
 
