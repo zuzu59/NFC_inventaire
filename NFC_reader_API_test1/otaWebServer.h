@@ -1,7 +1,7 @@
 //
 // OTA WEB server
 //
-// zf240513.2142
+// zf240514.1213
 //
 // Sources:
 // https://lastminuteengineers.com/esp32-ota-web-updater-arduino-ide/
@@ -55,18 +55,18 @@ static void otaWebServer() {
     if (upload.status == UPLOAD_FILE_START) {
       USBSerial.printf("Update: %s\n", upload.filename.c_str());
       if (!Update.begin(UPDATE_SIZE_UNKNOWN)) { //start with max available size
-        Update.printError(Serial);
+        Update.printError(USBSerial);
       }
     } else if (upload.status == UPLOAD_FILE_WRITE) {
       /* flashing firmware to ESP*/
       if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
-        Update.printError(Serial);
+        Update.printError(USBSerial);
       }
     } else if (upload.status == UPLOAD_FILE_END) {
       if (Update.end(true)) { //true to set the size to the current progress
         USBSerial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
       } else {
-        Update.printError(Serial);
+        Update.printError(USBSerial);
       }
     }
   });
