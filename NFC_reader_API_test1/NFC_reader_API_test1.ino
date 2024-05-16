@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240516.1922"
+#define zVERSION "zf240516.1956"
 /*
 Utilisation:
 
@@ -224,6 +224,7 @@ void setup() {
     pinMode(ledPin, OUTPUT);
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
     digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
+    pinMode(buttonPin, INPUT_PULLUP);
 
     // start serial console
     USBSerial.begin(19200);
@@ -231,6 +232,15 @@ void setup() {
     delay(3000);                          //le temps de passer sur la Serial Monitor ;-)
     USBSerial.println("\n\n\n\n**************************************\nCa commence !");
     USBSerial.println(zVERSION);
+
+    // si le bouton FLASH de l'esp32-c3 est appuyé dans les 3 secondes après le boot, la config WIFI sera effacée !
+    if ( digitalRead(buttonPin) == LOW) {
+      WiFiManager wm;    
+      wm.resetSettings();
+      USBSerial.println("Config WIFI effacée !");
+      delay(1000);
+      ESP.restart();
+    }
 
     // start LED RGB
     FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);  // GRB ordering is assumed
