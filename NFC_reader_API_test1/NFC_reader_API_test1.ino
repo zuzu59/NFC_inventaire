@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240514.2108"
+#define zVERSION "zf240516.1922"
 /*
 Utilisation:
 
@@ -29,6 +29,7 @@ https://randomnerdtutorials.com/security-access-using-mfrc522-rfid-reader-with-a
 https://forum.fritzing.org/t/need-esp32-c3-super-mini-board-model/20561
 https://www.aliexpress.com/item/1005006005040320.html
 https://randomnerdtutorials.com/esp32-useful-wi-fi-functions-arduino
+https://dronebotworkshop.com/wifimanager/
 https://github.com/FastLED/FastLED/blob/master/examples/Blink/Blink.ino
 https://lastminuteengineers.com/esp32-ota-web-updater-arduino-ide/
 https://chat.mistral.ai/    pour toute la partie API REST ᕗ
@@ -68,14 +69,20 @@ String newRFID = "00 00 00 00 00 00 00";
 // WIFI
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiManager.h>
 #include "secrets.h"
 WiFiClient client;
 HTTPClient http;
 
 static void ConnectWiFi() {
-    USBSerial.printf("WIFI_SSID: %s\nWIFI_PASSWORD: %s\n", WIFI_SSID, WIFI_PASSWORD);
-    WiFi.mode(WIFI_STA); //Optional
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    WiFi.mode(WIFI_STA); //Optional    
+    WiFiManager wm;
+    bool res;
+    res = wm.autoConnect("esp32_wifi_config",""); // password protected ap
+    if(!res) {
+        USBSerial.println("Failed to connect");
+        // ESP.restart();
+    }
     WiFi.setTxPower(WIFI_POWER_8_5dBm);  //c'est pour le Lolin esp32-c3 mini V1 ! https://www.wemos.cc/en/latest/c3/c3_mini_1_0_0.html
     int txPower = WiFi.getTxPower();
     USBSerial.print("TX power: ");
@@ -86,10 +93,12 @@ static void ConnectWiFi() {
         delay(100);
     }
     USBSerial.println("\nConnected to the WiFi network");
-    USBSerial.print("Local ESP32 IP: ");
-    USBSerial.println(WiFi.localIP());
+    USBSerial.print("SSID: ");
+    USBSerial.println(WiFi.SSID());
     USBSerial.print("RSSI: ");
     USBSerial.println(WiFi.RSSI());
+    USBSerial.print("IP: ");
+    USBSerial.println(WiFi.localIP());
 }
 
 
