@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240517.1345"
+#define zVERSION "zf240517.1549"
 /*
 Utilisation:
 
@@ -211,85 +211,79 @@ void startRFID() {
 
 
 // Lit un tag NFC 
-void readRFID() {
-  // USBSerial.println("coucou 1333");
-
-  if ( rfid.PICC_IsNewCardPresent()){
-    USBSerial.println("coucou 1334");
-
+int readRFID() {
+  if (rfid.PICC_IsNewCardPresent()){
+    USBSerial.println("Une carte est présente !");
     // Verify if the NUID has been readed
-    if ( rfid.PICC_ReadCardSerial()){
-      USBSerial.println("coucou 1335");
-
+    if (rfid.PICC_ReadCardSerial()){
+      // Halt PICC and Stop encryption on PCD
+      rfid.PICC_HaltA(); rfid.PCD_StopCrypto1();
+      // Get card type
       USBSerial.print("\n\n*****************\nCarte type: ");
       MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
       USBSerial.println(rfid.PICC_GetTypeName(piccType));
-
-      if (rfid.uid.uidByte[0] != nuidPICC[0] || 
-        rfid.uid.uidByte[1] != nuidPICC[1] || 
-        rfid.uid.uidByte[2] != nuidPICC[2] || 
-        rfid.uid.uidByte[3] != nuidPICC[3] || 
-        rfid.uid.uidByte[4] != nuidPICC[4] || 
-        rfid.uid.uidByte[5] != nuidPICC[5] || 
+      // Card not know ?
+      if (rfid.uid.uidByte[0] != nuidPICC[0] || rfid.uid.uidByte[1] != nuidPICC[1] || rfid.uid.uidByte[2] != nuidPICC[2] || 
+        rfid.uid.uidByte[3] != nuidPICC[3] || rfid.uid.uidByte[4] != nuidPICC[4] || rfid.uid.uidByte[5] != nuidPICC[5] || 
         rfid.uid.uidByte[6] != nuidPICC[6] ) {
-          USBSerial.println("Une nouvelle carte est détectée !");
+        USBSerial.println("Une nouvelle carte est détectée !");
+        // Store NUID into nuidPICC array
+        for (byte i = 0; i < 7; i++) {
+          nuidPICC[i] = rfid.uid.uidByte[i];
+        }
+      
+        // leds[2] = CRGB::Green; FastLED.show();
+        // USBSerial.print("L'UID de la carte est: ");
+        convHex(rfid.uid.uidByte, rfid.uid.size);
+        // USBSerial.print(newRFID);
 
-          // Store NUID into nuidPICC array
-          for (byte i = 0; i < 7; i++) {
-            nuidPICC[i] = rfid.uid.uidByte[i];
-          }
-        
-          leds[2] = CRGB::Green; FastLED.show();
-          USBSerial.print("L'UID de la carte est: ");
-          printHex(rfid.uid.uidByte, rfid.uid.size);
-          USBSerial.println();
+        // USBSerial.println();
 
-          // leds[6] = CRGB::Green; FastLED.show();
-          // sendToDB(newRFID, "Mais c'est toto !");
-          // delay(3000); 
-          // leds[6] = CRGB::Black; FastLED.show();
+        // leds[6] = CRGB::Green; FastLED.show();
+        // sendToDB(newRFID, "Mais c'est toto !");
+        // delay(3000); 
+        // leds[6] = CRGB::Black; FastLED.show();
 
       } else {
-        USBSerial.println("Carte déjà lue !");
-        leds[2] = CRGB::Orange; FastLED.show();
+        // USBSerial.println("Carte déjà lue !");
+        // leds[2] = CRGB::Orange; FastLED.show();
+        // // Halt PICC
+        // rfid.PICC_HaltA();
+
+        // // Stop encryption on PCD
+        // rfid.PCD_StopCrypto1();
+        return(3);
+
       }
-      // Halt PICC
-      rfid.PICC_HaltA();
+      // // Halt PICC
+      // rfid.PICC_HaltA();
 
-      // Stop encryption on PCD
-      rfid.PCD_StopCrypto1();
-      delay(1000);
-      leds[2] = CRGB::Blue; FastLED.show();
+      // // Stop encryption on PCD
+      // rfid.PCD_StopCrypto1();
+
+      // delay(1000);
+      // leds[2] = CRGB::Blue; FastLED.show();
+      return(1);
     }
+  }else {
+    return(0);
   }
-
-
-
-
-
-
-
 }
 
 
 
 
 
-
-
-// Helper routine to dump a byte array as hex values to Serial. 
-void printHex(byte *buffer, byte bufferSize) {
-    newRFID = "";
-    for (byte i = 0; i < bufferSize; i++) {
-      char hexStr[3]; // Crée un tableau temporaire pour stocker la valeur hexadécimale
-      sprintf(hexStr, "%02X", buffer[i]); // Convertit la valeur en hexadécimal et la stocke dans hexStr
-      newRFID += hexStr; // Concatène la valeur hexadécimale à newRFID
-      newRFID += " "; // Ajoute un espace après chaque octet
-    }
-    newRFID.trim(); // Supprime les espaces supplémentaires à la fin de la chaîne
-    USBSerial.print(newRFID);
-      // USBSerial.print(buffer[i] < 0x10 ? " 0" : " ");
-      // USBSerial.print(buffer[i], HEX);
+// Converti l'UID en hexa dans newRFID
+void convHex(byte *buffer, byte bufferSize) {
+  newRFID = "";
+  for (byte i = 0; i < bufferSize; i++) {
+    char hexStr[3]; // Crée un tableau temporaire pour stocker la valeur hexadécimale
+    sprintf(hexStr, "%02X", buffer[i]); // Convertit la valeur en hexadécimal et la stocke dans hexStr
+    newRFID += hexStr; // Concatène la valeur hexadécimale à newRFID
+    newRFID += " "; // Ajoute un espace après chaque octet
+  }
+  newRFID.trim(); // Supprime les espaces supplémentaires à la fin de la chaîne
 }
 
 
@@ -361,7 +355,21 @@ void loop() {
 
   // Lit un tag NFC 
   leds[2] = CRGB::Blue; FastLED.show();
-  readRFID();
+  int statRFID(readRFID());
+  USBSerial.println(statRFID);
+  if (statRFID == 1) {
+    leds[2] = CRGB::Green; FastLED.show();
+    USBSerial.print("L'UID de la carte est: ");
+    USBSerial.print(newRFID);
+    delay(1000);
+    leds[2] = CRGB::Blue; FastLED.show();
+  } else if (statRFID == 3) {
+    leds[2] = CRGB::Orange; FastLED.show();
+    USBSerial.println("Carte déjà lue !");
+    delay(1000);
+    leds[2] = CRGB::Blue; FastLED.show();
+  }
+
 
 
 
