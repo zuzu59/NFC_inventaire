@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240517.1605"
+#define zVERSION "zf240518.0854"
 /*
 Utilisation:
 
@@ -63,7 +63,28 @@ float rrsiLevel = 0;      // variable to store the RRSI level
 const int zPulseDelayOn = 25;    // délai pour le blink
 const int zPulseDelayOff = 50;    // délai pour le blink
 const int zPulseDelayWait = 200;    // délai pour le blink
+
 String newRFID = "00 00 00 00 00 00 00";
+String tagFromager = ""
+String tagNotation = ""
+
+bool zProcFromager = false
+bool zProcAddFromage = false
+bool zProcAddInventaire = false
+bool zProcAddTagCmd = false
+bool zProcNotation = false
+
+const int ledWIFI =               0
+const int ledProcFromager =       1
+const int ledProcAddFromage =     2
+const int ledProcAddInventaire =  3
+const int ledProcAddTagCmd =      4
+const int ledProcNotation =       5
+const int ledOk =                 6
+const int ledFree =               7
+
+
+
 
 
 // WIFI
@@ -117,8 +138,16 @@ CRGB leds[NUM_LEDS];
 // API JSON
 #include <ArduinoJson.h>
 const char* token = apiToken;
-const char* apiGetIndex = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records?viewId=vwwm6yz0uhytc9er&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
-const char* apiPostNewRecord = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records";
+const char* apiGetIndexToto = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records?viewId=vwwm6yz0uhytc9er&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
+const char* apiPostNewRecordToto = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records";
+
+const char* apiGetIndexTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?viewId=vw68oujklglmmlp3&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
+const char* apiPostNewRecordTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records";
+
+const char* apiGetIndexTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1jj/records?viewId=vwl66xl4gwk919f1&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
+const char* apiPostNewRecordTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1jj/records";
+
+
 
 static void sendToDB(String zUidRfid, String zComment) {
   if (WiFi.status() == WL_CONNECTED) {
@@ -334,11 +363,58 @@ void loop() {
     delay(300);
     leds[2] = CRGB::Blue; FastLED.show();
   }
-
-
-
-
   digitalWrite(ledPin, LOW); delay(zPulseDelayOn); digitalWrite(ledPin, HIGH); delay(zPulseDelayOff);
   digitalWrite(ledPin, LOW); delay(zPulseDelayOn); digitalWrite(ledPin, HIGH); delay(zPulseDelayOff);
   delay(zPulseDelayWait);
 }
+
+
+void clearAllProcedures(){
+  procFromager = false
+  procAddFromage = false
+  procAddInventaire = false
+  procAddTagCmd = false
+  procNotation = false
+}
+
+
+
+void procFromager(){
+  USBSerial.println("C'est la procédure procFromager !");
+  leds[ledProcFromager] = CRGB::Green; FastLED.show();
+  delay(300);
+  leds[ledProcFromager] = CRGB::Black; FastLED.show();
+}
+
+void procAddFromage(){
+  USBSerial.println("C'est la procédure procAddFromage !");
+  leds[ledProcAddFromage] = CRGB::Green; FastLED.show();
+  delay(300);
+  leds[ledProcAddFromage] = CRGB::Black; FastLED.show();
+}
+
+void procAddInventaire(){
+  USBSerial.println("C'est la procédure procAddInventaire !");
+  leds[ledProcAddInventaire] = CRGB::Green; FastLED.show();
+  delay(300);
+  leds[ledProcAddInventaire] = CRGB::Black; FastLED.show();
+}
+
+void procAddTagCmd(){
+  USBSerial.println("C'est la procédure procAddTagCmd !");
+  leds[ledProcAddTagCmd] = CRGB::Green; FastLED.show();
+  delay(300);
+  leds[ledProcAddTagCmd] = CRGB::Black; FastLED.show();
+}
+
+void procNotation(){
+  USBSerial.println("C'est la procédure procNotation !");
+  leds[ledProcNotation] = CRGB::Green; FastLED.show();
+  delay(300);
+  leds[ledProcNotation] = CRGB::Black; FastLED.show();
+}
+
+
+
+
+

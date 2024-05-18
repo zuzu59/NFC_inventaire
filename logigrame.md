@@ -1,13 +1,16 @@
 # Logigramme nfc inventaire
-240516.1453
+240517.1734
 
 ## Variables
 newRFID 
-tagFromager 
-procNewFromage
-procInventaireFromage
+tagFromager
+tagNotation
+
+procFromager
+procAddFromage
+procAddInventaire
+procAddTagCmd
 procNotation
-procNewTagCmd
 
 
 ## Logique
@@ -15,52 +18,46 @@ un TAG est lu !
 
 if (is not in table tag cmd)
     tagUnknow = true
-    if (procNewFromage) 
+    if (procFromager) 
         tagUnknow = false
-        procédure NewFromage
-    if (procInventaire) 
+        procédure procFromager
+    if (procAddFromage) 
         tagUnknow = false
-        procédure Inventaire
+        procédure procAddFromage
+    if (procAddInventaire) 
+        tagUnknow = false
+        procédure procAddInventaire
+    if (procAddTagCmd) 
+        tagUnknow = false
+        procédure procAddTagCmd
     if (procNotation) 
         tagUnknow = false
-        procédure Notation
-    if (procNewTagCmd) 
-        tagUnknow = false
-        procédure NewTagCmd 
+        procédure procNotation
     if (tagUnknow)
         print("007, on a un problème tag inconnu !")
 else
+    clearAllProcedures
     if (tagFromager cmd) 
-        tagFromager = newRFID 
-    if (NewFromage cmd)
-        clearAllProcedures
-        procNewFromage = true 
-    if (InventaireFromage cmd) 
-        clearAllProcedures
-        procInventaireFromage = true 
-    if (Notation cmd) 
-        clearAllProcedures
+        procFromager = true 
+    if (tagAddFromage cmd) 
+        procAddFromage = true 
+    if (tagAddInventaire cmd) 
+        procAddInventaire = true 
+    if (tagAddTagCmd cmd) 
+        procAddTagCmd = true 
+    if (tagNotation cmd) 
         procNotation = true 
-    if (NewTagCmd cmd)
-        clearAllProcedures
-        Add next tag to table tag cmd
+
 
 
 
 
 clearAllProcedures
-procNewFromage = false
-procInventaireFromage = false
-procNotation = false
-procNewTagCmd = false
-
-
-
-
-
-
-
-
+    procFromager = false
+    procAddFromage = false
+    procAddInventaire = false
+    procAddTagCmd = false
+    procNotation = false
 
 
 
