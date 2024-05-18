@@ -1,5 +1,5 @@
 # Logigramme nfc inventaire
-240517.1734
+240518.1528
 
 ## Variables
 newRFID 
@@ -16,7 +16,19 @@ procNotation
 ## Logique
 un TAG est lu !
 
-if (is not in table tag cmd)
+if (is in table tag cmd)
+    clearAllProcedures
+    if (tagFromager cmd) 
+        procFromager = true 
+    if (tagAddFromage cmd) 
+        procAddFromage = true 
+    if (tagAddInventaire cmd) 
+        procAddInventaire = true 
+    if (tagAddTagCmd cmd) 
+        procAddTagCmd = true 
+    if (tagNotation cmd) 
+        procNotation = true 
+else
     tagUnknow = true
     if (procFromager) 
         tagUnknow = false
@@ -35,18 +47,7 @@ if (is not in table tag cmd)
         procédure procNotation
     if (tagUnknow)
         print("007, on a un problème tag inconnu !")
-else
-    clearAllProcedures
-    if (tagFromager cmd) 
-        procFromager = true 
-    if (tagAddFromage cmd) 
-        procAddFromage = true 
-    if (tagAddInventaire cmd) 
-        procAddInventaire = true 
-    if (tagAddTagCmd cmd) 
-        procAddTagCmd = true 
-    if (tagNotation cmd) 
-        procNotation = true 
+
 
 
 

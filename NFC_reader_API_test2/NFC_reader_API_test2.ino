@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240518.1204"
+#define zVERSION "zf240518.1627"
 /*
 Utilisation:
 
@@ -74,14 +74,14 @@ bool zProcAddInventaire = false;
 bool zProcAddTagCmd = false;
 bool zProcNotation = false;
 
-const int ledWifi =               0;
-const int ledProcFromager =       1;
-const int ledProcAddFromage =     2;
-const int ledProcAddInventaire =  3;
-const int ledProcAddTagCmd =      4;
-const int ledProcNotation =       5;
-const int ledOk =                 6;
-const int ledFree =               7;
+const int ledWifi               = 0;
+const int ledProcFromager       = 1;
+const int ledProcAddFromage     = 2;
+const int ledProcAddInventaire  = 3;
+const int ledProcAddTagCmd      = 4;
+const int ledProcNotation       = 5;
+const int ledOk                 = 6;
+const int ledFree               = 7;
 
 
 
@@ -146,14 +146,15 @@ const char* apiPostNewRecordToto = apiServerName "/api/v2/tables/mccwrj43jwtogvs
 const char* apiGetIndexTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?viewId=vw68oujklglmmlp3&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecordTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records";
 
+const char* apiGetRfidTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?viewId=vw68oujklglmmlp3&fields=UID%20RFID&limit=25&shuffle=0&offset=0";
+
 const char* apiGetIndexTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1jj/records?viewId=vwl66xl4gwk919f1&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecordTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1jj/records";
 
 
-
-static void getIndex(String zApiGetIndex) {
-  // Efectuer la requête GET pour récupérer l'Index du dernier enregistrement
-  http.begin(zApiGetIndex);
+String getToDB(String zApigetToDB) {
+  // Efectue la requête GET pour récupérer l'enregistrement
+  http.begin(zApigetToDB);
   http.addHeader("accept", "application/json");
   http.addHeader("xc-token", zToken);
   int httpCode = http.GET();
@@ -161,19 +162,8 @@ static void getIndex(String zApiGetIndex) {
     if (httpCode == HTTP_CODE_OK) {
       String payload = http.getString();
       USBSerial.println(payload);
-      // Allouer un objet DynamicJsonDocument pour stocker le JSON
-      DynamicJsonDocument doc(1024);
-      // Désérialiser le JSON
-      DeserializationError error = deserializeJson(doc, payload);
-      if (error) {
-        USBSerial.print("deserializeJson() failed: ");
-        USBSerial.println(error.f_str());
-        return;
-      }
-      // Récupérer le champ "Index" et l'incrémenter
-      zIndex = doc["list"][0]["Index"].as<long>() + 1;
-      USBSerial.print("Index incremented: ");
-      USBSerial.println(zIndex);
+      http.end();
+      return(payload);
     } else {
       USBSerial.printf("Error on HTTP request: %d\n", httpCode);
     }
@@ -182,6 +172,24 @@ static void getIndex(String zApiGetIndex) {
   }
   http.end();
 }
+
+
+void getIndex(String payload){
+  // Alloue un objet DynamicJsonDocument pour stocker le JSON
+  DynamicJsonDocument doc(1024);
+  // Désérialise le JSON
+  DeserializationError error = deserializeJson(doc, payload);
+  if (error) {
+    USBSerial.print("deserializeJson() failed: ");
+    USBSerial.println(error.f_str());
+    return;
+  }
+  // Récupère le champ "Index" et l'incrémente
+  zIndex = doc["list"][0]["Index"].as<long>() + 1;
+  USBSerial.print("Index incremented: ");
+  USBSerial.println(zIndex);
+}
+
 
 
 
@@ -207,41 +215,6 @@ static void postToDB(String zApiPostToDb, String jsonReqBody) {
 
 
 
-
-
-
-
-// static void sendToDB(String zUidRfid, String zComment) {
-//   getIndex(apiGetIndexToto);
-
-//   // Créer le corps de la requête POST
-//   StaticJsonDocument<1024> reqBody;
-
-//   reqBody["Index"] = zIndex;
-//   reqBody["UID RFID"] = zUidRfid;
-//   reqBody["Commentaire"] = zComment;
-//   reqBody["RSSI"] = WiFi.RSSI();
-//   reqBody["IP"] = WiFi.localIP();
-
-//   String jsonReqBody;
-//   serializeJson(reqBody, jsonReqBody);
-//   // Effectuer la requête POST pour créer le nouvel enregistrement
-//   http.begin(apiPostNewRecordToto);
-//   http.addHeader("Content-Type", "application/json");
-//   http.addHeader("xc-token", zToken);
-//   int httpCode = http.POST(jsonReqBody);
-//   if (httpCode > 0) {
-//     USBSerial.printf("POST request response code: %d\n", httpCode);
-//     if (httpCode == HTTP_CODE_OK) {
-//       String response = http.getString();
-//       USBSerial.println("POST request response:");
-//       USBSerial.println(response);
-//     }
-//   } else {
-//     USBSerial.println("Error on POST request");
-//   }
-//   http.end();
-// }
 
 
 // RFID MFRC522
@@ -291,7 +264,7 @@ int readRFID() {
         convHex(rfid.uid.uidByte, rfid.uid.size);
         return(1);
       } else {
-          return(3);
+        return(3);
       }
     }
   }else {
@@ -454,13 +427,14 @@ void procNotation(){
 void procTagLog(){
   USBSerial.println("C'est la procédure procTagLog !");
 
-  getIndex(apiGetIndexTagLog);
+  
+  getIndex(getToDB(apiGetIndexTagLog));
 
   // Créer le corps de la requête POST
   StaticJsonDocument<1024> reqBody;
   reqBody["Index"] = zIndex;
   reqBody["UID RFID"] = newRFID;
-  reqBody["Comment"] = "toto";
+  reqBody["Comment"] = zVERSION;
   reqBody["SSID"] = WiFi.SSID();
   reqBody["RSSI"] = WiFi.RSSI();
   reqBody["IP"] = WiFi.localIP();
@@ -470,9 +444,9 @@ void procTagLog(){
   // Post la requête à la DB
   postToDB(apiPostNewRecordTagLog, jsonReqBody);
 
-  leds[ledFree] = CRGB::Green; FastLED.show();
+  leds[ledOk] = CRGB::Green; FastLED.show();
   delay(300);
-  leds[ledFree] = CRGB::Black; FastLED.show();
+  leds[ledOk] = CRGB::Black; FastLED.show();
 }
 
 
