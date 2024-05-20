@@ -1,5 +1,5 @@
 # Logigramme nfc inventaire
-240518.1528
+240520.1424
 
 ## Variables
 newRFID 
