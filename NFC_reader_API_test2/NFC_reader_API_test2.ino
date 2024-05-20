@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA et le WIFImanager \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240520.1527"
+#define zVERSION "zf240520.1546"
 /*
 Utilisation:
 
@@ -192,15 +192,27 @@ const char* apiPostNewRecordTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1
 
 
 String getToDB(String zApigetToDB) {
+
+  USBSerial.print("zApigetToDB: ");
+  USBSerial.println(zApigetToDB);
+
   // Efectue la requête GET pour récupérer l'enregistrement
+  http.end();
   http.begin(zApigetToDB);
   http.addHeader("accept", "application/json");
   http.addHeader("xc-token", zToken);
   int httpCode = http.GET();
-  // if (httpCode > 0) {
+  if (httpCode > 0) {
+
+    USBSerial.print("httpCode: ");
+    USBSerial.println(httpCode);
+
     if (httpCode == HTTP_CODE_OK) {
       String payload = http.getString();
+
+      USBSerial.print("payload de getToDB: ");
       USBSerial.println(payload);
+
       http.end();
       return(payload);
     } else {
@@ -208,11 +220,11 @@ String getToDB(String zApigetToDB) {
       http.end();
       delay(1000);
     }
-  // } else {
-  //   USBSerial.println("Error on HTTP request");
-  //   http.end();
-  //   delay(1000);
-  // }
+  } else {
+    USBSerial.println("Error on HTTP request");
+    http.end();
+    delay(1000);
+  }
   http.end();
 }
 
@@ -416,7 +428,7 @@ void loop() {
       USBSerial.print("L'UID de la carte est: ");
       USBSerial.println(newRFID);
       // La sauvegarde dans la table Tag Log
-      procTagLog();
+      // procTagLog();
 
 
       logiGramme();
@@ -521,7 +533,7 @@ void logiGramme(){
   USBSerial.println(zRequest);
 
   // String payload = getToDB(zRequest);
-  String payload = getToDB("toto");
+  String payload = getToDB("tutu");
   USBSerial.print("payload: ");
   USBSerial.println(payload);
 
