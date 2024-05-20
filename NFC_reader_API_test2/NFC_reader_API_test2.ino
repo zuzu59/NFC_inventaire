@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA et le WIFImanager \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240520.1546"
+#define zVERSION "zf240520.2215"
 /*
 Utilisation:
 
@@ -199,14 +199,22 @@ String getToDB(String zApigetToDB) {
   // Efectue la requête GET pour récupérer l'enregistrement
   http.end();
   // http.begin(zApigetToDB);
-  http.begin("titi");
+  // http.begin("titi");
+
+
+
   http.addHeader("accept", "application/json");
   http.addHeader("xc-token", zToken);
-  int httpCode = http.GET();
+  http.setTimeout(3000); // Définir un délai d'attente de 10 secondes
+  // int httpCode = http.GET();
+  int httpCode = http.begin("titi") ? http.GET() : -1;
+
+  USBSerial.print("httpCode: ");
+  USBSerial.println(httpCode);
+
   if (httpCode > 0) {
 
-    USBSerial.print("httpCode: ");
-    USBSerial.println(httpCode);
+
 
     if (httpCode == HTTP_CODE_OK) {
       String payload = http.getString();
@@ -222,9 +230,13 @@ String getToDB(String zApigetToDB) {
       delay(1000);
     }
   } else {
-    USBSerial.println("Error on HTTP request");
-    // http.end();
+    USBSerial.println("Error on HTTP request toto");
+    USBSerial.println(ESP.getFreeHeap());
+    
+    http.end();
     delay(1000);
+    return("erreur zuzu");
+
   }
   // http.end();
 }
@@ -538,7 +550,7 @@ void logiGramme(){
   USBSerial.print("payload: ");
   USBSerial.println(payload);
 
-
+  USBSerial.println("coucou je suis passé par là !");
 
   // DynamicJsonDocument doc(1024);
   // // Désérialise le JSON
