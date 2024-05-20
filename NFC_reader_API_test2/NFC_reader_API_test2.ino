@@ -198,7 +198,8 @@ String getToDB(String zApigetToDB) {
 
   // Efectue la requête GET pour récupérer l'enregistrement
   http.end();
-  http.begin(zApigetToDB);
+  // http.begin(zApigetToDB);
+  http.begin("titi");
   http.addHeader("accept", "application/json");
   http.addHeader("xc-token", zToken);
   int httpCode = http.GET();
@@ -213,19 +214,19 @@ String getToDB(String zApigetToDB) {
       USBSerial.print("payload de getToDB: ");
       USBSerial.println(payload);
 
-      http.end();
+      // http.end();
       return(payload);
     } else {
       USBSerial.printf("Error on HTTP request: %d\n", httpCode);
-      http.end();
+      // http.end();
       delay(1000);
     }
   } else {
     USBSerial.println("Error on HTTP request");
-    http.end();
+    // http.end();
     delay(1000);
   }
-  http.end();
+  // http.end();
 }
 
 
