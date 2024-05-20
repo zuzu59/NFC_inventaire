@@ -1,8 +1,8 @@
 // Petit test pour voir comment lire une puce NFC et accéder à une API REST sur un serveur NocoDB avec un esp32-c3
-// Et grande nouveauté, avec le support de OTA \o/
+// Et grande nouveauté, avec le support de OTA et le WIFImanager \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240520.1406"
+#define zVERSION "zf240520.1417"
 /*
 Utilisation:
 
@@ -303,7 +303,7 @@ int readRFID() {
         convHex(rfid.uid.uidByte, rfid.uid.size);
         return(1);
       } else {
-        return(3);
+        return(2);
       }
     }
   }else {
@@ -388,6 +388,8 @@ void setup() {
   // start RFID
   startRFID();
 
+  // Il n'y a pas de fromager !
+  leds[ledProcFromager] = CRGB::Red; FastLED.show();
 }
 
 
@@ -396,22 +398,27 @@ void loop() {
   server.handleClient();
 
   // Lit un tag NFC 
-  leds[ledProcAddFromage] = CRGB::Blue; FastLED.show();
+  leds[ledFree] = CRGB::Blue; FastLED.show();
   int statRFID(readRFID());
   // USBSerial.println(statRFID);
-  if (statRFID == 1) {
-    leds[ledProcAddFromage] = CRGB::Green; FastLED.show();
-    USBSerial.println("Une nouvelle carte est détectée !");
-    USBSerial.print("L'UID de la carte est: ");
-    USBSerial.println(newRFID);
-    procTagLog();
-    delay(300);
-    leds[ledProcAddFromage] = CRGB::Blue; FastLED.show();
-  } else if (statRFID == 3) {
-    leds[ledProcAddFromage] = CRGB::Orange; FastLED.show();
-    USBSerial.println("Carte déjà lue !");
-    delay(300);
-    leds[ledProcAddFromage] = CRGB::Blue; FastLED.show();
+  switch (statRFID){
+    // Une nouvelle carte est détectée !
+    case 1:
+      leds[ledFree] = CRGB::Green; FastLED.show();
+      USBSerial.println("Une nouvelle carte est détectée !");
+      USBSerial.print("L'UID de la carte est: ");
+      USBSerial.println(newRFID);
+      procTagLog();
+      delay(300);
+      leds[ledFree] = CRGB::Blue; FastLED.show();
+      break;
+    // Carte déjà lue !
+    case 2:
+      leds[ledFree] = CRGB::Orange; FastLED.show();
+      USBSerial.println("Carte déjà lue !");
+      delay(300);
+      leds[ledFree] = CRGB::Blue; FastLED.show();
+      break;
   }
   
   // un petit coup si nécéssaire de pulse sur la LED pour dire que tout fonctionne bien
