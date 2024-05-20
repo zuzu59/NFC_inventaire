@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA et le WIFImanager \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240520.2310"
+#define zVERSION "zf240521.0042"
 /*
 Utilisation:
 
@@ -183,7 +183,7 @@ const char* apiPostNewRecordToto = apiServerName "/api/v2/tables/mccwrj43jwtogvs
 const char* apiGetIndexTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?viewId=vw68oujklglmmlp3&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecordTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records";
 
-const char* apiGetRfidTagCmd = apiServerName "/zzzapi/v2/tables/mmkk01cafw4ynyp/records?viewId=vw68oujklglmmlp3&where=%28UID%20RFID%2Ceq%2Cxxx%29&limit=25&shuffle=0&offset=0";
+const char* apiGetRfidTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?viewId=vw68oujklglmmlp3&where=%28UID%20RFID%2Ceq%2Cxxx%29&limit=25&shuffle=0&offset=0";
 
 const char* apiGetIndexTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1jj/records?viewId=vwl66xl4gwk919f1&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecordTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1jj/records";
@@ -452,14 +452,13 @@ void clearAllProcedures(){
 
 void procFromager(){
   USBSerial.println("C'est la procédure procFromager !");
+  clearAllProcedures();
   leds[ledProcFromager] = CRGB::Green; FastLED.show();
-  delay(300);
-  leds[ledProcFromager] = CRGB::Black; FastLED.show();
 }
 
 void procAddFromage(){
   USBSerial.println("C'est la procédure procAddFromage !");
-  leds[ledProcAddFromage] = CRGB::Green; FastLED.show();
+  leds[ledProcAddFromage] = CRGB::Yellow; FastLED.show();
   delay(300);
   leds[ledProcAddFromage] = CRGB::Black; FastLED.show();
 }
@@ -473,7 +472,7 @@ void procAddInventaire(){
 
 void procAddTagCmd(){
   USBSerial.println("C'est la procédure procAddTagCmd !");
-  leds[ledProcAddTagCmd] = CRGB::Green; FastLED.show();
+  leds[ledProcAddTagCmd] = CRGB::Yellow; FastLED.show();
   delay(300);
   leds[ledProcAddTagCmd] = CRGB::Black; FastLED.show();
 }
@@ -510,32 +509,75 @@ void procTagLog(){
 void logiGramme(){
   // Regarde si le TAG existe dans la table tag cmd ?
   String zRequest = apiGetRfidTagCmd;
-  // zRequest.replace("xxx", newRFID);
+  zRequest.replace("xxx", newRFID);
   USBSerial.print("zRequest: ");
   USBSerial.println(zRequest);
 
-  // String payload = getToDB(zRequest);
-  String payload = getToDB("tutu");
+  String payload = getToDB(zRequest);
+  // String payload = getToDB("tutu");
   USBSerial.print("payload: ");
   USBSerial.println(payload);
 
   USBSerial.println("coucou je suis passé par là !");
 
-  // DynamicJsonDocument doc(1024);
-  // // Désérialise le JSON
-  // DeserializationError error = deserializeJson(doc, payload);
-  // if (error) {
-  //   USBSerial.print("deserializeJson() failed: ");
-  //   USBSerial.println(error.f_str());
-  //   return;
-  // }
+  DynamicJsonDocument doc(1024);
+  // Désérialise le JSON
+  DeserializationError error = deserializeJson(doc, payload);
+  if (error) {
+    USBSerial.print("deserializeJson() failed: ");
+    USBSerial.println(error.f_str());
+    return;
+  }
   // // Récupère le champ "Index" et l'incrémente
   // zIndex = doc["list"][0]["Index"].as<long>() + 1;
-  // USBSerial.print("Index incremented: ");
-  // USBSerial.println(zIndex);
+  int zIsCmdTag = doc["pageInfo"]["totalRows"].as<int>();
+  USBSerial.print("zIsCmdTag: ");
+  USBSerial.println(zIsCmdTag);
+
+  if(zIsCmdTag == 1){
+    // y'a un tag cmd
+    USBSerial.println("y'a un tag cmd");
+    clearAllProcedures();
+    String zTypeCmd = doc["list"][0]["Type cmd"].as<String>();
+    USBSerial.println(zTypeCmd);
+
+    if(zTypeCmd == "procAddTagCmd"){
+      // procAddTagCmd();
+      zProcAddTagCmd = true;
+      leds[ledProcAddTagCmd] = CRGB::Green; FastLED.show();
+    }
+    if(zTypeCmd == "procFromager"){
+      // procFromager();
+      zProcFromager = true;
+      leds[ledProcFromager] = CRGB::Green; FastLED.show();
+    }
+
+  }else if(zIsCmdTag == 0){
+    // y'a pas de tag cmd
+    USBSerial.println("y'a pas de tag cmd");
+    byte tagUnknow = true;
+
+    if(zProcAddTagCmd){
+      procAddTagCmd();
+      tagUnknow = false;
+    }
+    if(zProcFromager){
+      procFromager();
+      tagUnknow = false;
+    }
+    if(tagUnknow){
+      USBSerial.println("007, on a un problème tag inconnu !");
+    }
+
+  }else{
+    // y'a un doublon de tag cmd
+      USBSerial.println("y'a un doublon de tag cmd");
+  } 
 
 
-  delay(1000);
+
+
+
 
 }
 
