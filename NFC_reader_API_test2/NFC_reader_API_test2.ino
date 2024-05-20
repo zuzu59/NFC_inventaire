@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA et le WIFImanager \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240520.2215"
+#define zVERSION "zf240520.2310"
 /*
 Utilisation:
 
@@ -183,7 +183,7 @@ const char* apiPostNewRecordToto = apiServerName "/api/v2/tables/mccwrj43jwtogvs
 const char* apiGetIndexTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?viewId=vw68oujklglmmlp3&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecordTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records";
 
-const char* apiGetRfidTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?viewId=vw68oujklglmmlp3&where=%28UID%20RFID%2Ceq%2Cxxx%29&limit=25&shuffle=0&offset=0";
+const char* apiGetRfidTagCmd = apiServerName "/zzzapi/v2/tables/mmkk01cafw4ynyp/records?viewId=vw68oujklglmmlp3&where=%28UID%20RFID%2Ceq%2Cxxx%29&limit=25&shuffle=0&offset=0";
 
 const char* apiGetIndexTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1jj/records?viewId=vwl66xl4gwk919f1&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecordTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1jj/records";
@@ -192,54 +192,22 @@ const char* apiPostNewRecordTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1
 
 
 String getToDB(String zApigetToDB) {
-
-  USBSerial.print("zApigetToDB: ");
-  USBSerial.println(zApigetToDB);
-
   // Efectue la requête GET pour récupérer l'enregistrement
-  http.end();
-  // http.begin(zApigetToDB);
-  // http.begin("titi");
-
-
-
+  http.begin(zApigetToDB);
   http.addHeader("accept", "application/json");
   http.addHeader("xc-token", zToken);
-  http.setTimeout(3000); // Définir un délai d'attente de 10 secondes
-  // int httpCode = http.GET();
-  int httpCode = http.begin("titi") ? http.GET() : -1;
-
-  USBSerial.print("httpCode: ");
-  USBSerial.println(httpCode);
-
-  if (httpCode > 0) {
-
-
-
-    if (httpCode == HTTP_CODE_OK) {
-      String payload = http.getString();
-
-      USBSerial.print("payload de getToDB: ");
-      USBSerial.println(payload);
-
-      // http.end();
-      return(payload);
-    } else {
-      USBSerial.printf("Error on HTTP request: %d\n", httpCode);
-      // http.end();
-      delay(1000);
-    }
-  } else {
-    USBSerial.println("Error on HTTP request toto");
-    USBSerial.println(ESP.getFreeHeap());
-    
+  int httpCode = http.GET();
+  if (httpCode == HTTP_CODE_OK) {
+    String payload = http.getString();
     http.end();
-    delay(1000);
-    return("erreur zuzu");
-
+    return(payload);
   }
-  // http.end();
+  http.end();
+  String zError = "Error on HTTP request in getToDB: " + String(httpCode);
+  USBSerial.println(zError);
+  return(zError);
 }
+
 
 
 void getIndex(String payload){
@@ -369,6 +337,7 @@ void setup() {
 
   // start LED RGB
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);  // GRB ordering is assumed
+  FastLED.clear(); FastLED.show();
 
   // start serial console
   USBSerial.begin(19200);
@@ -541,7 +510,7 @@ void procTagLog(){
 void logiGramme(){
   // Regarde si le TAG existe dans la table tag cmd ?
   String zRequest = apiGetRfidTagCmd;
-  zRequest.replace("xxx", newRFID);
+  // zRequest.replace("xxx", newRFID);
   USBSerial.print("zRequest: ");
   USBSerial.println(zRequest);
 
