@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240518.1627"
+#define zVERSION "zf240520.1406"
 /*
 Utilisation:
 
@@ -14,6 +14,9 @@ Pour les esp32-c3 super mini, il faut:
  * choisir comme board ESP32C3 Dev Module
  * disabled USB CDC On Boot et utiliser USBSerial. au lieu de Serial. pour la console !
  * changer le schéma de la partition à Minimal SPIFFS (1.9MB APP with OTA/190kB SPIFFS)
+
+Pour le WiFiManager, il faut installer cette lib depuis le lib manager sur Arduino:
+https://github.com/tzapu/WiFiManager
 
 Pour le lecteur de NFC RFID RC522, il faut installer cette lib depuis le lib manager sur Arduino:
 https://github.com/miguelbalboa/rfid   (elle est vieille mais fonctionne encore super bien zf240510)
@@ -60,9 +63,11 @@ https://chat.mistral.ai/    pour toute la partie API REST ᕗ
 const int ledPin = 8;    // the number of the LED pin
 const int buttonPin = 9;  // the number of the pushbutton pin
 float rrsiLevel = 0;      // variable to store the RRSI level
-const int zPulseDelayOn = 25;    // délai pour le blink
-const int zPulseDelayOff = 50;    // délai pour le blink
-const int zPulseDelayWait = 200;    // délai pour le blink
+const int zSonarPulseOn = 100;    // délai pour sonarPulse
+const int zSonarPulseOff = 200;    // délai pour sonarPulse
+const int zSonarPulseWait = 1000;    // délai pour sonarPulse
+byte zSonarPulseState = 1;    // état pour sonarPulse
+long zSonarPulseNextMillis = 0;    // état pour sonarPulse
 
 String newRFID = "00 00 00 00 00 00 00";
 String tagFromager = "";
@@ -85,6 +90,38 @@ const int ledFree               = 7;
 
 
 
+
+// Machine à état pour faire pulser deux fois la petite LED sans bloquer le système
+void sonarPulse(){
+  if (zSonarPulseNextMillis < millis()){
+    switch (zSonarPulseState){
+      // 1ère pulse allumée que l'on doit éteindre !
+      case 1:
+        digitalWrite(ledPin, HIGH);
+        zSonarPulseNextMillis = millis() + zSonarPulseOff;
+        zSonarPulseState = 2;
+        break;
+      // 1ère pulse éteinte que l'on doit allumer !
+      case 2:
+        digitalWrite(ledPin, LOW);
+        zSonarPulseNextMillis = millis() + zSonarPulseOn;
+        zSonarPulseState = 3;
+        break;
+      // 2e pulse allumée que l'on doit éteindre et attendre le wait !
+      case 3:
+        digitalWrite(ledPin, HIGH);
+        zSonarPulseNextMillis = millis() + zSonarPulseWait;
+        zSonarPulseState = 4;
+        break;
+      // 2e pulse éteinte pendant le wait que l'on doit allumer !
+      case 4:
+        digitalWrite(ledPin, LOW);
+        zSonarPulseNextMillis = millis() + zSonarPulseOn;
+        zSonarPulseState = 1;
+        break;
+    }
+  }
+}
 
 
 // WIFI
@@ -150,6 +187,8 @@ const char* apiGetRfidTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/rec
 
 const char* apiGetIndexTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1jj/records?viewId=vwl66xl4gwk919f1&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecordTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1jj/records";
+
+
 
 
 String getToDB(String zApigetToDB) {
@@ -288,67 +327,66 @@ void convHex(byte *buffer, byte bufferSize) {
 
 
 
-void sonarPulse(){
-  digitalWrite(ledPin, LOW); delay(zPulseDelayOn); digitalWrite(ledPin, HIGH); delay(zPulseDelayOff);
-  digitalWrite(ledPin, LOW); delay(zPulseDelayOn); digitalWrite(ledPin, HIGH); delay(zPulseDelayOff);
-  delay(zPulseDelayWait);
-}
+
 
 
 
 void setup() {
-    pinMode(ledPin, OUTPUT);
-    sonarPulse();
-    pinMode(buttonPin, INPUT_PULLUP);
+  // Pulse deux fois pour dire que l'on démarre
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW); delay(zSonarPulseOn); digitalWrite(ledPin, HIGH); delay(zSonarPulseOff);
+  digitalWrite(ledPin, LOW); delay(zSonarPulseOn); digitalWrite(ledPin, HIGH); delay(zSonarPulseOff);
+  delay(zSonarPulseWait);
 
-    // start serial console
-    USBSerial.begin(19200);
-    USBSerial.setDebugOutput(true);       //pour voir les messages de debug des libs sur la console série !
-    delay(3000);                          //le temps de passer sur la Serial Monitor ;-)
-    USBSerial.println("\n\n\n\n**************************************\nCa commence !");
-    USBSerial.println(zVERSION);
+  // start serial console
+  USBSerial.begin(19200);
+  USBSerial.setDebugOutput(true);       //pour voir les messages de debug des libs sur la console série !
+  delay(3000);                          //le temps de passer sur la Serial Monitor ;-)
+  USBSerial.println("\n\n\n\n**************************************\nCa commence !");
+  USBSerial.println(zVERSION);
 
-    // si le bouton FLASH de l'esp32-c3 est appuyé dans les 3 secondes après le boot, la config WIFI sera effacée !
-    if ( digitalRead(buttonPin) == LOW) {
-      WiFiManager wm;    
-      wm.resetSettings();
-      USBSerial.println("Config WIFI effacée !"); delay(1000);
-      ESP.restart();
-    }
+  // si le bouton FLASH de l'esp32-c3 est appuyé dans les 3 secondes après le boot, la config WIFI sera effacée !
+  pinMode(buttonPin, INPUT_PULLUP);
+  if ( digitalRead(buttonPin) == LOW) {
+    WiFiManager wm;    
+    wm.resetSettings();
+    USBSerial.println("Config WIFI effacée !"); delay(1000);
+    ESP.restart();
+  }
 
-    // start LED RGB
-    FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);  // GRB ordering is assumed
+  // start LED RGB
+  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);  // GRB ordering is assumed
 
-    // start WIFI
-    leds[ledWifi] = CRGB::Blue; FastLED.show();
-    digitalWrite(ledPin, HIGH);
-    USBSerial.println("Connect WIFI !");
-    ConnectWiFi();
-    leds[ledWifi] = CRGB::Green; FastLED.show();
-    digitalWrite(ledPin, LOW);
-    delay(200); 
+  // start WIFI
+  leds[ledWifi] = CRGB::Blue; FastLED.show();
+  digitalWrite(ledPin, HIGH);
+  USBSerial.println("Connect WIFI !");
+  ConnectWiFi();
+  leds[ledWifi] = CRGB::Green; FastLED.show();
+  digitalWrite(ledPin, LOW);
+  delay(200); 
 
-    // start OTA server
-    otaWebServer();
+  // start OTA server
+  otaWebServer();
 
-    // leds[6] = CRGB::Blue; FastLED.show();
-    // USBSerial.println("Et en avant pour la connexion à la DB !");
-    // USBSerial.print("\nAvec comme apiGetIndex: ");
-    // USBSerial.println(apiGetIndex);
-    // USBSerial.print("et comme apiPostNewRecord: ");
-    // USBSerial.println(apiPostNewRecord);
+  // leds[6] = CRGB::Blue; FastLED.show();
+  // USBSerial.println("Et en avant pour la connexion à la DB !");
+  // USBSerial.print("\nAvec comme apiGetIndex: ");
+  // USBSerial.println(apiGetIndex);
+  // USBSerial.print("et comme apiPostNewRecord: ");
+  // USBSerial.println(apiPostNewRecord);
 
-    // // start API REST
-    // sendToDB("C'est le boot il n'y a pas de TAG !", zVERSION);
-    // digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
-    // digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
-    // digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
-    // leds[6] = CRGB::Green; FastLED.show();
-    // delay(3000); 
-    // leds[6] = CRGB::Black; FastLED.show();
+  // // start API REST
+  // sendToDB("C'est le boot il n'y a pas de TAG !", zVERSION);
+  // digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
+  // digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
+  // digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200);
+  // leds[6] = CRGB::Green; FastLED.show();
+  // delay(3000); 
+  // leds[6] = CRGB::Black; FastLED.show();
 
-    // start RFID
-    startRFID();
+  // start RFID
+  startRFID();
 
 }
 
@@ -375,8 +413,11 @@ void loop() {
     delay(300);
     leds[ledProcAddFromage] = CRGB::Blue; FastLED.show();
   }
+  
+  // un petit coup si nécéssaire de pulse sur la LED pour dire que tout fonctionne bien
   sonarPulse();
 }
+
 
 
 void clearAllProcedures(){
