@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA et le WIFImanager \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240521.1011"
+#define zVERSION "zf240521.1115"
 /*
 Utilisation:
 
@@ -448,17 +448,19 @@ void loop() {
 
 
 
+
+
 void clearAllProcedures(){
-  zProcAddFromage = false; leds[zProcAddFromage] = CRGB::Black; FastLED.show();
-  zProcAddInventaire = false; leds[zProcAddInventaire] = CRGB::Black; FastLED.show();
-  zProcAddTagCmd = false; leds[zProcAddTagCmd] = CRGB::Black; FastLED.show();
-  zProcNotation = false; leds[zProcNotation] = CRGB::Black; FastLED.show();
+  USBSerial.println("C'est la procédure clearAllProcedures !");
+  zProcAddFromage = false; leds[ledProcAddFromage] = CRGB::Black; FastLED.show();
+  zProcAddInventaire = false; leds[ledProcAddInventaire] = CRGB::Black; FastLED.show();
+  zProcAddTagCmd = false; leds[ledProcAddTagCmd] = CRGB::Black; FastLED.show();
+  zProcNotation = false; leds[ledProcNotation] = CRGB::Black; FastLED.show();
 }
 
 
 void procFromager(){
   USBSerial.println("C'est la procédure procFromager !");
-  clearAllProcedures();
   // A encore faire: initialiser la variable fromager avec le nom du fromager !
   leds[ledProcFromager] = CRGB::Green; FastLED.show();
 }
@@ -537,13 +539,12 @@ void toDoTag(){
 // c'est un tag cmd
 void itIsTagCmd(){
   clearAllProcedures();
-  if(zTypeCmd == "procAddTagCmd"){
-    // procAddTagCmd();
-    zProcAddTagCmd = true;
-    leds[ledProcAddTagCmd] = CRGB::Green; FastLED.show();
-  }
   if(zTypeCmd == "procFromager"){
     procFromager();
+  }
+  if(zTypeCmd == "procAddTagCmd"){
+    zProcAddTagCmd = true;
+    leds[ledProcAddTagCmd] = CRGB::Green; FastLED.show();
   }
 }
 
