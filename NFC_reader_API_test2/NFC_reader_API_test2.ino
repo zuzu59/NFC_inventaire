@@ -2,7 +2,7 @@
 // Et grande nouveauté, avec le support de OTA et le WIFImanager \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240521.0042"
+#define zVERSION "zf240521.1011"
 /*
 Utilisation:
 
@@ -70,10 +70,10 @@ byte zSonarPulseState = 1;    // état pour sonarPulse
 long zSonarPulseNextMillis = 0;    // état pour sonarPulse
 
 String newRFID = "00 00 00 00 00 00 00";
+String zTypeCmd = "";
 String tagFromager = "";
 String tagNotation = "";
 
-bool zProcFromager = false;
 bool zProcAddFromage = false;
 bool zProcAddInventaire = false;
 bool zProcAddTagCmd = false;
@@ -322,6 +322,26 @@ void convHex(byte *buffer, byte bufferSize) {
 }
 
 
+void procTagLog(){
+  USBSerial.println("C'est la procédure procTagLog !");
+  // Récupère l'Index de la table log de la DB et l'incrémente
+  getIndex(getToDB(apiGetIndexTagLog));
+  // Créer le corps de la requête POST
+  StaticJsonDocument<1024> reqBody;
+  reqBody["Index"] = zIndex;
+  reqBody["UID RFID"] = newRFID;
+  reqBody["Comment"] = zVERSION;
+  reqBody["SSID"] = WiFi.SSID();
+  reqBody["RSSI"] = WiFi.RSSI();
+  reqBody["IP"] = WiFi.localIP();
+  String jsonReqBody;
+  serializeJson(reqBody, jsonReqBody);
+  // Post la requête à la DB
+  postToDB(apiPostNewRecordTagLog, jsonReqBody);
+  leds[ledOk] = CRGB::Green; FastLED.show();
+  delay(300);
+  leds[ledOk] = CRGB::Black; FastLED.show();
+}
 
 
 
@@ -336,36 +356,27 @@ void setup() {
   delay(zSonarPulseWait);
 
   // start LED RGB
-  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);  // GRB ordering is assumed
-  FastLED.clear(); FastLED.show();
+  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS); FastLED.clear(); FastLED.show();
 
   // start serial console
   USBSerial.begin(19200);
   USBSerial.setDebugOutput(true);       //pour voir les messages de debug des libs sur la console série !
   delay(3000);                          //le temps de passer sur la Serial Monitor ;-)
-  USBSerial.println("\n\n\n\n**************************************\nCa commence !");
-  USBSerial.println(zVERSION);
+  USBSerial.println("\n\n\n\n**************************************\nCa commence !"); USBSerial.println(zVERSION);
 
   // si le bouton FLASH de l'esp32-c3 est appuyé dans les 3 secondes après le boot, la config WIFI sera effacée !
   pinMode(buttonPin, INPUT_PULLUP);
   if ( digitalRead(buttonPin) == LOW) {
-    WiFiManager wm;    
-    wm.resetSettings();
+    WiFiManager wm; wm.resetSettings();
     USBSerial.println("Config WIFI effacée !"); delay(1000);
     ESP.restart();
   }
 
-  // start LED RGB
-  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);  // GRB ordering is assumed
-
   // start WIFI
-  leds[ledWifi] = CRGB::Blue; FastLED.show();
-  digitalWrite(ledPin, HIGH);
+  leds[ledWifi] = CRGB::Blue; FastLED.show(); digitalWrite(ledPin, HIGH);
   USBSerial.println("Connect WIFI !");
   ConnectWiFi();
-  leds[ledWifi] = CRGB::Green; FastLED.show();
-  digitalWrite(ledPin, LOW);
-  delay(200); 
+  leds[ledWifi] = CRGB::Green; FastLED.show(); digitalWrite(ledPin, LOW);
 
   // start OTA server
   otaWebServer();
@@ -389,7 +400,7 @@ void setup() {
   // start RFID
   startRFID();
 
-  // Il n'y a pas de fromager !
+  // On indique qu'il n'y a pas de fromager !
   leds[ledProcFromager] = CRGB::Red; FastLED.show();
 }
 
@@ -402,23 +413,23 @@ void loop() {
   leds[ledFree] = CRGB::Blue; FastLED.show();
   int statRFID(readRFID());
   // USBSerial.println(statRFID);
+
   switch (statRFID){
     // Une nouvelle carte est détectée !
     case 1:
       leds[ledFree] = CRGB::Green; FastLED.show();
       USBSerial.println("Une nouvelle carte est détectée !");
-      USBSerial.print("L'UID de la carte est: ");
-      USBSerial.println(newRFID);
+      USBSerial.print("L'UID de la carte est: "); USBSerial.println(newRFID);
       // La sauvegarde dans la table Tag Log
       // procTagLog();
 
-
-      logiGramme();
-
+      // Traitement du tag
+      toDoTag();
 
       delay(300);
       leds[ledFree] = CRGB::Blue; FastLED.show();
       break;
+
     // Carte déjà lue !
     case 2:
       leds[ledFree] = CRGB::Orange; FastLED.show();
@@ -437,24 +448,21 @@ void loop() {
 
 
 
-
-
-
 void clearAllProcedures(){
-  zProcFromager = false;
-  zProcAddFromage = false;
-  zProcAddInventaire = false;
-  zProcAddTagCmd = false;
-  zProcNotation = false;
+  zProcAddFromage = false; leds[zProcAddFromage] = CRGB::Black; FastLED.show();
+  zProcAddInventaire = false; leds[zProcAddInventaire] = CRGB::Black; FastLED.show();
+  zProcAddTagCmd = false; leds[zProcAddTagCmd] = CRGB::Black; FastLED.show();
+  zProcNotation = false; leds[zProcNotation] = CRGB::Black; FastLED.show();
 }
-
 
 
 void procFromager(){
   USBSerial.println("C'est la procédure procFromager !");
   clearAllProcedures();
+  // A encore faire: initialiser la variable fromager avec le nom du fromager !
   leds[ledProcFromager] = CRGB::Green; FastLED.show();
 }
+
 
 void procAddFromage(){
   USBSerial.println("C'est la procédure procAddFromage !");
@@ -463,12 +471,14 @@ void procAddFromage(){
   leds[ledProcAddFromage] = CRGB::Black; FastLED.show();
 }
 
+
 void procAddInventaire(){
   USBSerial.println("C'est la procédure procAddInventaire !");
   leds[ledProcAddInventaire] = CRGB::Green; FastLED.show();
   delay(300);
   leds[ledProcAddInventaire] = CRGB::Black; FastLED.show();
 }
+
 
 void procAddTagCmd(){
   USBSerial.println("C'est la procédure procAddTagCmd !");
@@ -477,6 +487,7 @@ void procAddTagCmd(){
   leds[ledProcAddTagCmd] = CRGB::Black; FastLED.show();
 }
 
+
 void procNotation(){
   USBSerial.println("C'est la procédure procNotation !");
   leds[ledProcNotation] = CRGB::Green; FastLED.show();
@@ -484,103 +495,74 @@ void procNotation(){
   leds[ledProcNotation] = CRGB::Black; FastLED.show();
 }
 
-void procTagLog(){
-  USBSerial.println("C'est la procédure procTagLog !");
-  // Récupère l'Index de la table log de la DB et l'incrémente
-  getIndex(getToDB(apiGetIndexTagLog));
-  // Créer le corps de la requête POST
-  StaticJsonDocument<1024> reqBody;
-  reqBody["Index"] = zIndex;
-  reqBody["UID RFID"] = newRFID;
-  reqBody["Comment"] = zVERSION;
-  reqBody["SSID"] = WiFi.SSID();
-  reqBody["RSSI"] = WiFi.RSSI();
-  reqBody["IP"] = WiFi.localIP();
-  String jsonReqBody;
-  serializeJson(reqBody, jsonReqBody);
-  // Post la requête à la DB
-  postToDB(apiPostNewRecordTagLog, jsonReqBody);
-  leds[ledOk] = CRGB::Green; FastLED.show();
-  delay(300);
-  leds[ledOk] = CRGB::Black; FastLED.show();
-}
 
 
-void logiGramme(){
-  // Regarde si le TAG existe dans la table tag cmd ?
-  String zRequest = apiGetRfidTagCmd;
-  zRequest.replace("xxx", newRFID);
-  USBSerial.print("zRequest: ");
-  USBSerial.println(zRequest);
-
+// Traitement du TAG, existe-t-il dans la table tag cmd ?
+void toDoTag(){
+  String zRequest = apiGetRfidTagCmd; zRequest.replace("xxx", newRFID);
+  USBSerial.print("zRequest: "); USBSerial.println(zRequest);
   String payload = getToDB(zRequest);
-  // String payload = getToDB("tutu");
-  USBSerial.print("payload: ");
-  USBSerial.println(payload);
+  USBSerial.print("payload: "); USBSerial.println(payload);
 
-  USBSerial.println("coucou je suis passé par là !");
-
-  DynamicJsonDocument doc(1024);
   // Désérialise le JSON
+  DynamicJsonDocument doc(1024);
   DeserializationError error = deserializeJson(doc, payload);
   if (error) {
-    USBSerial.print("deserializeJson() failed: ");
-    USBSerial.println(error.f_str());
+    USBSerial.print("deserializeJson() failed: "); USBSerial.println(error.f_str());
+    leds[ledOk] = CRGB::Red; FastLED.show(); delay(300); leds[ledOk] = CRGB::Black; FastLED.show();
     return;
   }
-  // // Récupère le champ "Index" et l'incrémente
-  // zIndex = doc["list"][0]["Index"].as<long>() + 1;
+  // Récupère  le champ "totalRows" pour voir si le tag existe dans la table tag cmd ?
   int zIsCmdTag = doc["pageInfo"]["totalRows"].as<int>();
-  USBSerial.print("zIsCmdTag: ");
-  USBSerial.println(zIsCmdTag);
+  USBSerial.print("zIsCmdTag: "); USBSerial.println(zIsCmdTag);
 
+  // C'est un tag cmd
   if(zIsCmdTag == 1){
-    // y'a un tag cmd
-    USBSerial.println("y'a un tag cmd");
-    clearAllProcedures();
-    String zTypeCmd = doc["list"][0]["Type cmd"].as<String>();
-    USBSerial.println(zTypeCmd);
+    zTypeCmd = doc["list"][0]["Type cmd"].as<String>();
+    USBSerial.print("C'est le tag cmd: "); USBSerial.println(zTypeCmd);
+    itIsTagCmd();
 
-    if(zTypeCmd == "procAddTagCmd"){
-      // procAddTagCmd();
-      zProcAddTagCmd = true;
-      leds[ledProcAddTagCmd] = CRGB::Green; FastLED.show();
-    }
-    if(zTypeCmd == "procFromager"){
-      // procFromager();
-      zProcFromager = true;
-      leds[ledProcFromager] = CRGB::Green; FastLED.show();
-    }
-
+  // Ce n'est pas un tag cmd
   }else if(zIsCmdTag == 0){
-    // y'a pas de tag cmd
-    USBSerial.println("y'a pas de tag cmd");
-    byte tagUnknow = true;
-
-    if(zProcAddTagCmd){
-      procAddTagCmd();
-      tagUnknow = false;
-    }
-    if(zProcFromager){
-      procFromager();
-      tagUnknow = false;
-    }
-    if(tagUnknow){
-      USBSerial.println("007, on a un problème tag inconnu !");
-    }
-
+    USBSerial.println("Ce n'est pas un tag cmd");
+    itIsNotTagCmd();
+  
+  // y'a un doublon de tag dans la table tag cmd
   }else{
-    // y'a un doublon de tag cmd
-      USBSerial.println("y'a un doublon de tag cmd");
+      USBSerial.println("y'a un doublon de tag dans la table tag cmd");
   } 
-
-
-
-
-
-
 }
 
 
+// c'est un tag cmd
+void itIsTagCmd(){
+  clearAllProcedures();
+  if(zTypeCmd == "procAddTagCmd"){
+    // procAddTagCmd();
+    zProcAddTagCmd = true;
+    leds[ledProcAddTagCmd] = CRGB::Green; FastLED.show();
+  }
+  if(zTypeCmd == "procFromager"){
+    procFromager();
+  }
+}
+
+
+// ce n'est pas un tag cmd
+void itIsNotTagCmd(){
+  byte tagUnknow = true;
+  if(zProcAddTagCmd){
+    procAddTagCmd();
+    tagUnknow = false;
+  }
+  if(zProcNotation){
+    procNotation();
+    tagUnknow = false;
+  }
+  if(tagUnknow){
+    USBSerial.println("007, on a un problème tag inconnu !");
+    leds[ledOk] = CRGB::Red; FastLED.show(); delay(300); leds[ledOk] = CRGB::Black; FastLED.show();
+  }
+}
 
 
