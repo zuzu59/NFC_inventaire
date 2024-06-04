@@ -1,7 +1,7 @@
 //
 // OTA WEB server
 //
-// zf240514.1213
+// zf240528.1530
 //
 // Sources:
 // https://lastminuteengineers.com/esp32-ota-web-updater-arduino-ide/
@@ -15,20 +15,20 @@
 /*
  * Login page
  */
-#include "loginIndex.h"
+#include "otaLoginIndex.h"
 
 
 /*
  * Server Index Page
  */
-#include "serverIndex.h"
+#include "otaServerIndex.h"
 
 
 WebServer server(80);
 
 static void otaWebServer() {
   /*use mdns for host name resolution*/
-  if (!MDNS.begin(host)) { //http://esp32.local
+  if (!MDNS.begin(zHOST)) {         //http://xxx.local
     USBSerial.println("Error setting up MDNS responder!");
     while (1) {
       delay(1000);

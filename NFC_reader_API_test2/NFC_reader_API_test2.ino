@@ -2,7 +2,8 @@
 // Et grande nouveauté, avec le support de OTA et le WIFImanager \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION "zf240521.1115"
+#define zVERSION  "zf240604.1755"
+#define zHOST     "nfc_dev"            // ATTENTION, tout en minuscule !
 /*
 Utilisation:
 
@@ -28,14 +29,14 @@ Pour le stick LED RGB il faut installer cette lib:
 https://github.com/FastLED/FastLED    (by Daniel Garcia)
 
 Sources:
-https://randomnerdtutorials.com/security-access-using-mfrc522-rfid-reader-with-arduino/
 https://forum.fritzing.org/t/need-esp32-c3-super-mini-board-model/20561
 https://www.aliexpress.com/item/1005006005040320.html
-https://randomnerdtutorials.com/esp32-useful-wi-fi-functions-arduino
 https://dronebotworkshop.com/wifimanager/
 https://github.com/FastLED/FastLED/blob/master/examples/Blink/Blink.ino
 https://lastminuteengineers.com/esp32-ota-web-updater-arduino-ide/
-https://chat.mistral.ai/    pour toute la partie API REST ᕗ
+https://randomnerdtutorials.com/esp32-useful-wi-fi-functions-arduino
+https://randomnerdtutorials.com/security-access-using-mfrc522-rfid-reader-with-arduino/
+https://chat.mistral.ai/    pour toute la partie API REST et wifiAuto ᕗ
 */
 
 /*
@@ -60,14 +61,9 @@ https://chat.mistral.ai/    pour toute la partie API REST ᕗ
 
 
 // General
-const int ledPin = 8;    // the number of the LED pin
-const int buttonPin = 9;  // the number of the pushbutton pin
-float rrsiLevel = 0;      // variable to store the RRSI level
-const int zSonarPulseOn = 100;    // délai pour sonarPulse
-const int zSonarPulseOff = 200;    // délai pour sonarPulse
-const int zSonarPulseWait = 1000;    // délai pour sonarPulse
-byte zSonarPulseState = 1;    // état pour sonarPulse
-long zSonarPulseNextMillis = 0;    // état pour sonarPulse
+const int ledPin = 8;             // the number of the LED pin
+const int buttonPin = 9;          // the number of the pushbutton pin
+int zDelay1Interval = 60000;       // Délais en mili secondes pour le zDelay1
 
 String newRFID = "00 00 00 00 00 00 00";
 String zTypeCmd = "";
@@ -89,79 +85,15 @@ const int ledOk                 = 6;
 const int ledFree               = 7;
 
 
-
-
-// Machine à état pour faire pulser deux fois la petite LED sans bloquer le système
-void sonarPulse(){
-  if (zSonarPulseNextMillis < millis()){
-    switch (zSonarPulseState){
-      // 1ère pulse allumée que l'on doit éteindre !
-      case 1:
-        digitalWrite(ledPin, HIGH);
-        zSonarPulseNextMillis = millis() + zSonarPulseOff;
-        zSonarPulseState = 2;
-        break;
-      // 1ère pulse éteinte que l'on doit allumer !
-      case 2:
-        digitalWrite(ledPin, LOW);
-        zSonarPulseNextMillis = millis() + zSonarPulseOn;
-        zSonarPulseState = 3;
-        break;
-      // 2e pulse allumée que l'on doit éteindre et attendre le wait !
-      case 3:
-        digitalWrite(ledPin, HIGH);
-        zSonarPulseNextMillis = millis() + zSonarPulseWait;
-        zSonarPulseState = 4;
-        break;
-      // 2e pulse éteinte pendant le wait que l'on doit allumer !
-      case 4:
-        digitalWrite(ledPin, LOW);
-        zSonarPulseNextMillis = millis() + zSonarPulseOn;
-        zSonarPulseState = 1;
-        break;
-    }
-  }
-}
+// Sonar Pulse
+#include "zSonarpulse.h"
 
 
 // WIFI
-#include <WiFi.h>
-#include <HTTPClient.h>
-#include <WiFiManager.h>
-#include "secrets.h"
-WiFiClient client;
-HTTPClient http;
-
-static void ConnectWiFi() {
-    WiFi.mode(WIFI_STA); //Optional    
-    WiFiManager wm;
-    bool res;
-    res = wm.autoConnect("esp32_wifi_config",""); // password protected ap
-    if(!res) {
-        USBSerial.println("Failed to connect");
-        // ESP.restart();
-    }
-    WiFi.setTxPower(WIFI_POWER_8_5dBm);  //c'est pour le Lolin esp32-c3 mini V1 ! https://www.wemos.cc/en/latest/c3/c3_mini_1_0_0.html
-    int txPower = WiFi.getTxPower();
-    USBSerial.print("TX power: ");
-    USBSerial.println(txPower);
-    USBSerial.println("Connecting");
-    while(WiFi.status() != WL_CONNECTED){
-        USBSerial.print(".");
-        delay(100);
-    }
-    USBSerial.println("\nConnected to the WiFi network");
-    USBSerial.print("SSID: ");
-    USBSerial.println(WiFi.SSID());
-    USBSerial.print("RSSI: ");
-    USBSerial.println(WiFi.RSSI());
-    USBSerial.print("IP: ");
-    USBSerial.println(WiFi.localIP());
-}
+#include "zWifi.h"
 
 
 // OTA WEB server
-const char* host = "esp32-c3";
 #include "otaWebServer.h"
 
 
@@ -358,28 +290,21 @@ void setup() {
   // start LED RGB
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS); FastLED.clear(); FastLED.show();
 
-  // start serial console
+  // Start serial console
   USBSerial.begin(19200);
   USBSerial.setDebugOutput(true);       //pour voir les messages de debug des libs sur la console série !
   delay(3000);                          //le temps de passer sur la Serial Monitor ;-)
-  USBSerial.println("\n\n\n\n**************************************\nCa commence !"); USBSerial.println(zVERSION);
+  USBSerial.println("\n\n\n\n**************************************\nCa commence !"); USBSerial.println(zHOST ", " zVERSION);
 
-  // si le bouton FLASH de l'esp32-c3 est appuyé dans les 3 secondes après le boot, la config WIFI sera effacée !
-  pinMode(buttonPin, INPUT_PULLUP);
-  if ( digitalRead(buttonPin) == LOW) {
-    WiFiManager wm; wm.resetSettings();
-    USBSerial.println("Config WIFI effacée !"); delay(1000);
-    ESP.restart();
-  }
-
-  // start WIFI
+  // Start WIFI
   leds[ledWifi] = CRGB::Blue; FastLED.show(); digitalWrite(ledPin, HIGH);
   USBSerial.println("Connect WIFI !");
-  ConnectWiFi();
+  zStartWifi();
   leds[ledWifi] = CRGB::Green; FastLED.show(); digitalWrite(ledPin, LOW);
 
-  // start OTA server
+  // Start OTA server
   otaWebServer();
+
 
   // leds[6] = CRGB::Blue; FastLED.show();
   // USBSerial.println("Et en avant pour la connexion à la DB !");
@@ -406,8 +331,7 @@ void setup() {
 
 
 void loop() {
-  // OTA loop
-  server.handleClient();
+
 
   // Lit un tag NFC 
   leds[ledFree] = CRGB::Blue; FastLED.show();
@@ -439,8 +363,8 @@ void loop() {
       break;
   }
 
-  // Un petit coup sonar pulse sur la LED pour dire que tout fonctionne bien
-  sonarPulse();
+  // Délais non bloquant pour le sonarpulse et l'OTA
+  zDelay1(zDelay1Interval);
 }
 
 
@@ -566,4 +490,15 @@ void itIsNotTagCmd(){
   }
 }
 
+
+// Délais non bloquant pour le sonarpulse et l'OTA
+void zDelay1(long zDelayMili){
+  long zDelay1NextMillis = zDelayMili + millis(); 
+  while(millis() < zDelay1NextMillis ){
+    // OTA loop
+    server.handleClient();
+    // Un petit coup sonar pulse sur la LED pour dire que tout fonctionne bien
+    sonarPulse();
+  }
+}
 
