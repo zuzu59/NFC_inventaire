@@ -2,8 +2,12 @@
 // Et grande nouveauté, avec le support de OTA et le WIFImanager \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION  "zf240609.1757"
+#define zVERSION  "zf240609.1914"
 #define zHOST     "nfc_dev"            // ATTENTION, tout en minuscule !
+int zDelay1Interval = 60000;       // Délais en mili secondes pour le zDelay1
+
+#define DEBUG true
+
 /*
 Utilisation:
 
@@ -40,25 +44,12 @@ https://chat.mistral.ai/    pour toute la partie API REST et wifiAuto ᕗ
 */
 
 
-
-// #define DEBUG true
 // #undef DEBUG
 
 
 // General
 const int ledPin = 8;             // the number of the LED pin
 const int buttonPin = 9;          // the number of the pushbutton pin
-int zDelay1Interval = 60000;       // Délais en mili secondes pour le zDelay1
-
-String newRFID = "00 00 00 00 00 00 00";
-String zTypeCmd = "";
-String tagFromager = "";
-String tagNotation = "";
-
-bool zProcAddFromage = false;
-bool zProcAddInventaire = false;
-bool zProcAddTagCmd = false;
-bool zProcNotation = false;
 
 const int ledWifi               = 0;
 const int ledProcFromager       = 1;
@@ -89,7 +80,12 @@ const int ledFree               = 7;
 CRGB leds[NUM_LEDS];
 
 
+// NFC
+#include "zNFC.h"
 
+
+// NocoDB
+#include "zNocoDB.h"
 
 
 void setup() {
@@ -144,7 +140,6 @@ void setup() {
 
 void loop() {
 
-
   // Lit un tag NFC 
   leds[ledFree] = CRGB::Blue; FastLED.show();
   int statRFID(readRFID());
@@ -178,10 +173,6 @@ void loop() {
   // Délais non bloquant pour le sonarpulse et l'OTA
   zDelay1(zDelay1Interval);
 }
-
-
-
-
 
 
 // Délais non bloquant pour le sonarpulse et l'OTA
