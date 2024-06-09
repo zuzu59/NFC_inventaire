@@ -2,9 +2,9 @@
 // Et grande nouveauté, avec le support de OTA et le WIFImanager \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION  "zf240609.1914"
+#define zVERSION  "zf240609.1931"
 #define zHOST     "nfc_dev"            // ATTENTION, tout en minuscule !
-int zDelay1Interval = 60000;       // Délais en mili secondes pour le zDelay1
+int zDelay1Interval = 1000;       // Délais en mili secondes pour le zDelay1
 
 #define DEBUG true
 
@@ -143,7 +143,9 @@ void loop() {
   // Lit un tag NFC 
   leds[ledFree] = CRGB::Blue; FastLED.show();
   int statRFID(readRFID());
-  // USBSerial.println(statRFID);
+#ifdef DEBUG
+  USBSerial.println(statRFID);
+#endif
 
   switch (statRFID){
     // Une nouvelle carte est détectée !
