@@ -2,11 +2,11 @@
 // Et grande nouveauté, avec le support de OTA et le WIFImanager \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION  "zf240609.1931"
+#define zVERSION  "zf240610.1926"
 #define zHOST     "nfc_dev"            // ATTENTION, tout en minuscule !
 int zDelay1Interval = 1000;       // Délais en mili secondes pour le zDelay1
 
-#define DEBUG true
+// #define DEBUG true
 
 /*
 Utilisation:
@@ -172,19 +172,11 @@ void loop() {
       break;
   }
 
-  // Délais non bloquant pour le sonarpulse et l'OTA
-  zDelay1(zDelay1Interval);
-}
 
+  // OTA loop
+  server.handleClient();
+  // Un petit coup sonar pulse sur la LED pour dire que tout fonctionne bien
+  sonarPulse();
 
-// Délais non bloquant pour le sonarpulse et l'OTA
-void zDelay1(long zDelayMili){
-  long zDelay1NextMillis = zDelayMili + millis(); 
-  while(millis() < zDelay1NextMillis ){
-    // OTA loop
-    server.handleClient();
-    // Un petit coup sonar pulse sur la LED pour dire que tout fonctionne bien
-    sonarPulse();
-  }
 }
 
