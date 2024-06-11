@@ -2,7 +2,8 @@
 // Et grande nouveauté, avec le support de OTA et le WIFImanager \o/
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
-#define zVERSION  "zf240611.1523"
+
+#define zVERSION  "zf240611.1841"
 #define zHOST     "nfc_dev"            // ATTENTION, tout en minuscule !
 int zDelay1Interval = 1000;       // Délais en mili secondes pour le zDelay1
 
@@ -155,10 +156,8 @@ void loop() {
       USBSerial.print("L'UID de la carte est: "); USBSerial.println(newRFID);
       // La sauvegarde dans la table Tag Log
       procTagLog();
-
       // Traitement du tag
       toDoTag();
-
       delay(300);
       leds[ledFree] = CRGB::Blue; FastLED.show();
       break;

@@ -1,4 +1,4 @@
-// zf240611.1531
+// zf240611.1841
 
 String zCmdType = "";
 String zCmdComment = "";
@@ -21,9 +21,8 @@ long zIndex = 0;
 const char* apiGetIndexToto = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records?viewId=vwwm6yz0uhytc9er&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecordToto = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records";
 
-const char* apiGetIndexTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?viewId=vw68oujklglmmlp3&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
+const char* apiGetIndexTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecordTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records";
-
 const char* apiGetRfidTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?viewId=vw68oujklglmmlp3&where=%28UID%20RFID%2Ceq%2Cxxx%29&limit=25&shuffle=0&offset=0";
 
 const char* apiGetIndexTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1jj/records?viewId=vwl66xl4gwk919f1&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
@@ -94,27 +93,6 @@ void clearAllProcedures(){
 }
 
 
-void procFromager(){
-  USBSerial.println("C'est la procédure procFromager !");
-  zTagFromager = zCmdComment;
-  USBSerial.println("C'est le fromager: " + zTagFromager);
-  leds[ledProcFromager] = CRGB::Green; FastLED.show();
-}
-
-
-// c'est un tag cmd
-void itIsTagCmd(){
-  clearAllProcedures();
-  if(zCmdType == "procFromager"){
-    procFromager();
-  }
-  if(zCmdType == "procAddTagCmd"){
-    zProcAddTagCmd = true;
-    leds[ledProcAddTagCmd] = CRGB::Green; FastLED.show();
-  }
-}
-
-
 void procTagLog(){
   USBSerial.println("C'est la procédure procTagLog !");
   // Récupère l'Index de la table log de la DB et l'incrémente
@@ -137,10 +115,31 @@ void procTagLog(){
 }
 
 
+void procFromager(){
+  USBSerial.println("C'est la procédure procFromager !");
+  zTagFromager = zCmdComment;
+  USBSerial.println("C'est le fromager: " + zTagFromager);
+  leds[ledProcFromager] = CRGB::Green; FastLED.show();
+}
+
+
 void procAddTagCmd(){
   USBSerial.println("C'est la procédure procAddTagCmd !");
-  leds[ledProcAddTagCmd] = CRGB::Yellow; FastLED.show();
+  leds[ledProcAddTagCmd] = CRGB::Green; FastLED.show();
+  // Récupère l'Index de la table tag cmd de la DB et l'incrémente
+  getIndex(getToDB(apiGetIndexTagCmd));
+  // Créer le corps de la requête POST
+  StaticJsonDocument<1024> reqBody;
+  reqBody["Index"] = zIndex;
+  reqBody["UID RFID"] = newRFID;
+  String jsonReqBody;
+  serializeJson(reqBody, jsonReqBody);
+  // Post la requête à la DB
+  postToDB(apiPostNewRecordTagCmd, jsonReqBody);
+  // Reset le flag add tag cmd
+  zProcAddTagCmd = false;
   delay(300);
+  USBSerial.println("Tag Cmd ajouté !");
   leds[ledProcAddTagCmd] = CRGB::Black; FastLED.show();
 }
 
@@ -150,6 +149,19 @@ void procNotation(){
   leds[ledProcNotation] = CRGB::Green; FastLED.show();
   delay(300);
   leds[ledProcNotation] = CRGB::Black; FastLED.show();
+}
+
+
+// c'est un tag cmd
+void itIsTagCmd(){
+  clearAllProcedures();
+  if(zCmdType == "procFromager"){
+    procFromager();
+  }
+  if(zCmdType == "procAddTagCmd"){
+    zProcAddTagCmd = true;
+    leds[ledProcAddTagCmd] = CRGB::Yellow; FastLED.show();
+  }
 }
 
 
@@ -194,7 +206,7 @@ void toDoTag(){
   if(zIsCmdTag == 1){
     zCmdType = zRecordCmd["list"][0]["Type cmd"].as<String>();
     zCmdComment = zRecordCmd["list"][0]["Comment"].as<String>();
-    USBSerial.print("C'est le tag cmd: "); USBSerial.println(zCmdType);
+    USBSerial.println("C'est le tag cmd: " + zCmdType + " avec le commentaire: " + zCmdComment);
     itIsTagCmd();
 
   // Ce n'est pas un tag cmd
