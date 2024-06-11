@@ -1,4 +1,4 @@
-// zf240611.1841
+// zf240611.2233
 
 String zCmdType = "";
 String zCmdComment = "";
@@ -144,6 +144,15 @@ void procAddTagCmd(){
 }
 
 
+void procReboot(){
+  USBSerial.println("C'est la procédure procReboot !");
+  leds[ledProcNotation] = CRGB::Green; FastLED.show();
+  delay(1000);
+  ESP.restart();
+  leds[ledProcNotation] = CRGB::Black; FastLED.show();
+}
+
+
 void procNotation(){
   USBSerial.println("C'est la procédure procNotation !");
   leds[ledProcNotation] = CRGB::Green; FastLED.show();
@@ -161,6 +170,10 @@ void itIsTagCmd(){
   if(zCmdType == "procAddTagCmd"){
     zProcAddTagCmd = true;
     leds[ledProcAddTagCmd] = CRGB::Yellow; FastLED.show();
+  }
+  if(zCmdType == "procReboot"){
+    zProcAddTagCmd = true;
+    procReboot();
   }
 }
 
