@@ -1,13 +1,16 @@
-// zf240609.1911
+// zf240611.1531
 
-String zTypeCmd = "";
-String tagFromager = "";
-String tagNotation = "";
+String zCmdType = "";
+String zCmdComment = "";
+
+String zTagFromager = "";
+String zTagNotation = "";
 
 bool zProcAddFromage = false;
 bool zProcAddInventaire = false;
 bool zProcAddTagCmd = false;
 bool zProcNotation = false;
+
 
 
 // API JSON
@@ -82,6 +85,36 @@ static void postToDB(String zApiPostToDb, String jsonReqBody) {
 }
 
 
+void clearAllProcedures(){
+  USBSerial.println("C'est la procédure clearAllProcedures !");
+  zProcAddFromage = false; leds[ledProcAddFromage] = CRGB::Black; FastLED.show();
+  zProcAddInventaire = false; leds[ledProcAddInventaire] = CRGB::Black; FastLED.show();
+  zProcAddTagCmd = false; leds[ledProcAddTagCmd] = CRGB::Black; FastLED.show();
+  zProcNotation = false; leds[ledProcNotation] = CRGB::Black; FastLED.show();
+}
+
+
+void procFromager(){
+  USBSerial.println("C'est la procédure procFromager !");
+  zTagFromager = zCmdComment;
+  USBSerial.println("C'est le fromager: " + zTagFromager);
+  leds[ledProcFromager] = CRGB::Green; FastLED.show();
+}
+
+
+// c'est un tag cmd
+void itIsTagCmd(){
+  clearAllProcedures();
+  if(zCmdType == "procFromager"){
+    procFromager();
+  }
+  if(zCmdType == "procAddTagCmd"){
+    zProcAddTagCmd = true;
+    leds[ledProcAddTagCmd] = CRGB::Green; FastLED.show();
+  }
+}
+
+
 void procTagLog(){
   USBSerial.println("C'est la procédure procTagLog !");
   // Récupère l'Index de la table log de la DB et l'incrémente
@@ -104,38 +137,6 @@ void procTagLog(){
 }
 
 
-void clearAllProcedures(){
-  USBSerial.println("C'est la procédure clearAllProcedures !");
-  zProcAddFromage = false; leds[ledProcAddFromage] = CRGB::Black; FastLED.show();
-  zProcAddInventaire = false; leds[ledProcAddInventaire] = CRGB::Black; FastLED.show();
-  zProcAddTagCmd = false; leds[ledProcAddTagCmd] = CRGB::Black; FastLED.show();
-  zProcNotation = false; leds[ledProcNotation] = CRGB::Black; FastLED.show();
-}
-
-
-void procFromager(){
-  USBSerial.println("C'est la procédure procFromager !");
-  // A encore faire: initialiser la variable fromager avec le nom du fromager !
-  leds[ledProcFromager] = CRGB::Green; FastLED.show();
-}
-
-
-void procAddFromage(){
-  USBSerial.println("C'est la procédure procAddFromage !");
-  leds[ledProcAddFromage] = CRGB::Yellow; FastLED.show();
-  delay(300);
-  leds[ledProcAddFromage] = CRGB::Black; FastLED.show();
-}
-
-
-void procAddInventaire(){
-  USBSerial.println("C'est la procédure procAddInventaire !");
-  leds[ledProcAddInventaire] = CRGB::Green; FastLED.show();
-  delay(300);
-  leds[ledProcAddInventaire] = CRGB::Black; FastLED.show();
-}
-
-
 void procAddTagCmd(){
   USBSerial.println("C'est la procédure procAddTagCmd !");
   leds[ledProcAddTagCmd] = CRGB::Yellow; FastLED.show();
@@ -149,18 +150,6 @@ void procNotation(){
   leds[ledProcNotation] = CRGB::Green; FastLED.show();
   delay(300);
   leds[ledProcNotation] = CRGB::Black; FastLED.show();
-}
-
-// c'est un tag cmd
-void itIsTagCmd(){
-  clearAllProcedures();
-  if(zTypeCmd == "procFromager"){
-    procFromager();
-  }
-  if(zTypeCmd == "procAddTagCmd"){
-    zProcAddTagCmd = true;
-    leds[ledProcAddTagCmd] = CRGB::Green; FastLED.show();
-  }
 }
 
 
@@ -190,21 +179,22 @@ void toDoTag(){
   USBSerial.print("payload: "); USBSerial.println(payload);
 
   // Désérialise le JSON
-  DynamicJsonDocument doc(1024);
-  DeserializationError error = deserializeJson(doc, payload);
+  DynamicJsonDocument zRecordCmd(1024);
+  DeserializationError error = deserializeJson(zRecordCmd, payload);
   if (error) {
     USBSerial.print("deserializeJson() failed: "); USBSerial.println(error.f_str());
     leds[ledOk] = CRGB::Red; FastLED.show(); delay(300); leds[ledOk] = CRGB::Black; FastLED.show();
     return;
   }
   // Récupère  le champ "totalRows" pour voir si le tag existe dans la table tag cmd ?
-  int zIsCmdTag = doc["pageInfo"]["totalRows"].as<int>();
+  int zIsCmdTag = zRecordCmd["pageInfo"]["totalRows"].as<int>();
   USBSerial.print("zIsCmdTag: "); USBSerial.println(zIsCmdTag);
 
   // C'est un tag cmd
   if(zIsCmdTag == 1){
-    zTypeCmd = doc["list"][0]["Type cmd"].as<String>();
-    USBSerial.print("C'est le tag cmd: "); USBSerial.println(zTypeCmd);
+    zCmdType = zRecordCmd["list"][0]["Type cmd"].as<String>();
+    zCmdComment = zRecordCmd["list"][0]["Comment"].as<String>();
+    USBSerial.print("C'est le tag cmd: "); USBSerial.println(zCmdType);
     itIsTagCmd();
 
   // Ce n'est pas un tag cmd
@@ -218,5 +208,20 @@ void toDoTag(){
   } 
 }
 
+
+void procAddFromage(){
+  USBSerial.println("C'est la procédure procAddFromage !");
+  leds[ledProcAddFromage] = CRGB::Yellow; FastLED.show();
+  delay(300);
+  leds[ledProcAddFromage] = CRGB::Black; FastLED.show();
+}
+
+
+void procAddInventaire(){
+  USBSerial.println("C'est la procédure procAddInventaire !");
+  leds[ledProcAddInventaire] = CRGB::Green; FastLED.show();
+  delay(300);
+  leds[ledProcAddInventaire] = CRGB::Black; FastLED.show();
+}
 
 
