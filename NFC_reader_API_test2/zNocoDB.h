@@ -1,4 +1,4 @@
-// zf240616.1233
+// zf240616.1255
 
 String zCmdType = "";
 String zCmdComment = "";
@@ -11,6 +11,7 @@ bool zProcAddInventaire = false;
 bool zProcAddTagCmd = false;
 bool zProcNotation = false;
 
+long zStartNumber = 0;
 
 
 // API JSON
@@ -24,6 +25,7 @@ const char* apiPostNewRecordToto = apiServerName "/api/v2/tables/mccwrj43jwtogvs
 const char* apiGetIndexTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecordTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records";
 const char* apiGetRfidTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?viewId=vw68oujklglmmlp3&where=%28UID%20RFID%2Ceq%2Cxxx%29&limit=25&shuffle=0&offset=0";
+const char* apiGetStartNumberCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?fields=Comment&where=where%3D%28Type%20cmd%2Ceq%2CgetStartNumber%29&limit=25&shuffle=0&offset=0";
 
 const char* apiGetIndexTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1jj/records?viewId=vwl66xl4gwk919f1&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecordTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1jj/records";
@@ -45,6 +47,49 @@ String getToDB(String zApigetToDB) {
   USBSerial.println(zError);
   return(zError);
 }
+
+
+
+
+
+
+void getStartNumber(){
+  String zRequest = apiGetStartNumberCmd;
+  USBSerial.print("zRequest: "); USBSerial.println(zRequest);
+  String payload = getToDB(zRequest);
+  USBSerial.print("payload: "); USBSerial.println(payload);
+  // Désérialise le JSON
+  DynamicJsonDocument zRecordCmd(1024);
+  DeserializationError error = deserializeJson(zRecordCmd, payload);
+  if (error) {
+    USBSerial.print("deserializeJson() failed: "); USBSerial.println(error.f_str());
+    leds[ledOk] = CRGB::Red; FastLED.show(); delay(300); leds[ledOk] = CRGB::Black; FastLED.show();
+    return;
+  }
+  // Récupère  la valeur de StartNumber dans le champ "Comment"
+
+  int zIsCmdTag = zRecordCmd["pageInfo"]["totalRows"].as<int>();
+
+  int zIsCmdTag = zRecordCmd["pageInfo"]["totalRows"].as<int>();
+
+    zCmdComment = zRecordCmd["list"][0]["Comment"].as<String>();
+
+  zStartNumber = zRecordCmd["list"][0]["Comment"].as<long>();
+
+
+  USBSerial.print("zStartNumber: "); USBSerial.println(zStartNumber);
+
+
+
+
+
+
+}
+
+
+
+
+
 
 
 void getIndex(String payload){
