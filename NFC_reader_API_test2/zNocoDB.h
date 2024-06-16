@@ -1,4 +1,4 @@
-// zf240616.1255
+// zf240616.1427
 
 String zCmdType = "";
 String zCmdComment = "";
@@ -6,7 +6,6 @@ String zCmdComment = "";
 String zTagFromager = "";
 String zTagNotation = "";
 
-bool zProcAddFromage = false;
 bool zProcAddInventaire = false;
 bool zProcAddTagCmd = false;
 bool zProcNotation = false;
@@ -30,6 +29,8 @@ const char* apiGetStartNumberCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp
 const char* apiGetIndexTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1jj/records?viewId=vwl66xl4gwk919f1&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecordTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1jj/records";
 
+const char* apiPostNewFromageInventaire = apiServerName "/api/v2/tables/m8mwhjo08d8tm72/records";
+
 
 String getToDB(String zApigetToDB) {
   // Efectue la requête GET pour récupérer l'enregistrement
@@ -49,10 +50,6 @@ String getToDB(String zApigetToDB) {
 }
 
 
-
-
-
-
 void getStartNumber(){
   String zRequest = apiGetStartNumberCmd;
   USBSerial.print("zRequest: "); USBSerial.println(zRequest);
@@ -67,29 +64,9 @@ void getStartNumber(){
     return;
   }
   // Récupère  la valeur de StartNumber dans le champ "Comment"
-
-  int zIsCmdTag = zRecordCmd["pageInfo"]["totalRows"].as<int>();
-
-  int zIsCmdTag = zRecordCmd["pageInfo"]["totalRows"].as<int>();
-
-    zCmdComment = zRecordCmd["list"][0]["Comment"].as<String>();
-
   zStartNumber = zRecordCmd["list"][0]["Comment"].as<long>();
-
-
   USBSerial.print("zStartNumber: "); USBSerial.println(zStartNumber);
-
-
-
-
-
-
 }
-
-
-
-
-
 
 
 void getIndex(String payload){
@@ -208,6 +185,50 @@ void procStop(){
 }
 
 
+
+
+
+void procAddInventaire(){
+  USBSerial.println("C'est la procédure procAddInventaire !");
+  leds[ledProcAddInventaire] = CRGB::Blue; FastLED.show();
+  delay(300);
+
+  // Récupère le numéro du fromage à entrer dans l'inventaire depuis le commentaire de getStartNumber
+  getStartNumber();
+  // Créer le corps de la requête POST
+  StaticJsonDocument<1024> reqBody;
+  reqBody["Index"] = zIndex;
+  c'est ici qu'il faut ajouter le numéro de fromage
+  reqBody["UID RFID"] = newRFID;
+  String jsonReqBody;
+  serializeJson(reqBody, jsonReqBody);
+  // Post la requête à la DB
+  postToDB(apiPostNewFromageInventaire, jsonReqBody);
+
+  il ne faut pas reset le flag pour les fromage suivants
+
+  il faut incrémenter le commentaire getStartNumber de la table tag cmd pour le fromage suivant
+
+  // Reset le flag add tag cmd
+  zProcAddTagCmd = false;
+  delay(300);
+  USBSerial.println("Tag Cmd ajouté !");
+  leds[ledProcAddTagCmd] = CRGB::Black; FastLED.show();
+
+
+
+
+  leds[ledProcAddInventaire] = CRGB::Black; FastLED.show();
+}
+
+
+
+
+
+
+
+
+
 void procNotation(){
   USBSerial.println("C'est la procédure procNotation !");
   leds[ledProcNotation] = CRGB::Green; FastLED.show();
@@ -290,22 +311,6 @@ void toDoTag(){
   }else{
       USBSerial.println("y'a un doublon de tag dans la table tag cmd");
   } 
-}
-
-
-void procAddFromage(){
-  USBSerial.println("C'est la procédure procAddFromage !");
-  leds[ledProcAddFromage] = CRGB::Yellow; FastLED.show();
-  delay(300);
-  leds[ledProcAddFromage] = CRGB::Black; FastLED.show();
-}
-
-
-void procAddInventaire(){
-  USBSerial.println("C'est la procédure procAddInventaire !");
-  leds[ledProcAddInventaire] = CRGB::Green; FastLED.show();
-  delay(300);
-  leds[ledProcAddInventaire] = CRGB::Black; FastLED.show();
 }
 
 
