@@ -1,4 +1,4 @@
-// zf240611.2233
+// zf240616.1014
 
 String zCmdType = "";
 String zCmdComment = "";
@@ -105,6 +105,7 @@ void procTagLog(){
   reqBody["SSID"] = WiFi.SSID();
   reqBody["RSSI"] = WiFi.RSSI();
   reqBody["IP"] = WiFi.localIP();
+  reqBody["Fromager"] = zTagFromager;
   String jsonReqBody;
   serializeJson(reqBody, jsonReqBody);
   // Post la requête à la DB
