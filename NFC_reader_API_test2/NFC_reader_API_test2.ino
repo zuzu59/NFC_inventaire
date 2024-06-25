@@ -3,7 +3,7 @@
 // ATTENTION, ce code a été écrit pour un esp32-c3 super mini. Pas testé sur les autres boards !
 //
 
-#define zVERSION  "zf240625.1428"
+#define zVERSION  "zf240625.1706"
 #define zHOST     "nfc_dev"            // ATTENTION, tout en minuscule !
 int zDelay1Interval = 1000;       // Délais en mili secondes pour le zDelay1
 

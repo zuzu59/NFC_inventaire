@@ -1,4 +1,4 @@
-// zf240625.1428
+// zf240625.1639
 
 String zCmdType = "";
 String zCmdComment = "";
@@ -26,7 +26,7 @@ const char* apiGetIndexTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/re
 const char* apiPostNewRecordTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records";
 const char* apiPatchTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records";
 const char* apiGetRfidTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?viewId=vw68oujklglmmlp3&where=%28UID%20RFID%2Ceq%2Cxxx%29&limit=25&shuffle=0&offset=0";
-const char* apiGetStartNumberCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?fields=Comment&where=where%3D%28Type%20cmd%2Ceq%2CgetStartNumber%29&limit=25&shuffle=0&offset=0";
+const char* apiGetStartNumberCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?fields=Comment%2Cid&where=where%3D%28Type%20cmd%2Ceq%2CgetStartNumber%29&limit=25&shuffle=0&offset=0";
 
 const char* apiGetIndexTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1jj/records?viewId=vwl66xl4gwk919f1&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecordTagLog = apiServerName "/api/v2/tables/md736jl0ppzh1jj/records";
@@ -66,7 +66,7 @@ void getStartNumber(){
     return;
   }
   // Récupère  l'id du record"
-  zId = zRecordCmd["list"][0]["d"].as<long>();
+  zId = zRecordCmd["list"][0]["id"].as<long>();
   USBSerial.print("Id: "); USBSerial.println(zId);
   // Récupère  la valeur de StartNumber dans le champ "Comment"
   zStartNumber = zRecordCmd["list"][0]["Comment"].as<long>();
@@ -117,6 +117,13 @@ static void postToDB(String zApiPostToDb, String jsonReqBody) {
 
 
 static void patchToDB(String zApiPatchToDb, String jsonReqBody) {
+
+
+  USBSerial.println("PzApiPatchToDb: " + zApiPatchToDb);
+  USBSerial.println("jsonReqBody: " + jsonReqBody);
+
+
+
   // Effectuer la requête PATCH pour modifier un enregistrement
   http.begin(zApiPatchToDb);
   http.addHeader("Content-Type", "application/json");
@@ -246,7 +253,7 @@ void procStop(){
 
 void procAddInventaire(){
   USBSerial.println("C'est la procédure procAddInventaire !");
-  leds[ledProcAddInventaire] = CRGB::Blue; FastLED.show();
+  leds[ledProcAddInventaire] = CRGB::Green; FastLED.show();
   delay(300);
 
   // Récupère le numéro du fromage à entrer dans l'inventaire depuis le commentaire de getStartNumber
@@ -261,15 +268,13 @@ void procAddInventaire(){
   // Post la requête à la DB
   // postToDB(apiPostNewFromageInventaire, jsonReqBody);
 
+  // Incrémente le numéro de fromage dans la DB
   postIncStartNumber();
 
-//  il faut avoir un flag pour dire que les suivants c'est des add fromage dans inventaire !
-
-  delay(300);
   USBSerial.print("Nouveau fromage ");
   USBSerial.print(zStartNumber);
   USBSerial.println(" ajouté dans l'inventaire !");
-  leds[ledProcAddInventaire] = CRGB::Black; FastLED.show();
+  leds[ledProcAddInventaire] = CRGB::Blue; FastLED.show();
 }
 
 
@@ -295,7 +300,9 @@ void itIsTagCmd(){
     procFromager();
   }
   if(zCmdType == "procAddInventaire"){
-    procAddInventaire();
+    zProcAddInventaire = true;
+    leds[ledProcAddInventaire] = CRGB::Blue; FastLED.show();
+    delay(300);
   }
   if(zCmdType == "procAddTagCmd"){
     zProcAddTagCmd = true;
@@ -313,6 +320,10 @@ void itIsTagCmd(){
 // ce n'est pas un tag cmd
 void itIsNotTagCmd(){
   byte tagUnknow = true;
+  if(zProcAddInventaire){
+    procAddInventaire();
+    tagUnknow = false;
+  }
   if(zProcAddTagCmd){
     procAddTagCmd();
     tagUnknow = false;
