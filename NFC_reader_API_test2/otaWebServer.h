@@ -1,7 +1,7 @@
 //
 // OTA WEB server
 //
-// zf240528.1530
+// zf240625.1708
 //
 // Sources:
 // https://lastminuteengineers.com/esp32-ota-web-updater-arduino-ide/
@@ -53,7 +53,7 @@ static void otaWebServer() {
   }, []() {
     HTTPUpload& upload = server.upload();
     if (upload.status == UPLOAD_FILE_START) {
-      USBSerial.printf("Update: %s\n", upload.filename.c_str());
+      USBSerial.printf("\n\nUpdate: %s\n", upload.filename.c_str());
       if (!Update.begin(UPDATE_SIZE_UNKNOWN)) { //start with max available size
         Update.printError(USBSerial);
       }
