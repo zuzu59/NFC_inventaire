@@ -1,4 +1,4 @@
-// zf240625.1639
+// zf240625.1732
 
 String zCmdType = "";
 String zCmdComment = "";
@@ -111,19 +111,9 @@ static void postToDB(String zApiPostToDb, String jsonReqBody) {
 }
 
 
-
-
-
-
-
 static void patchToDB(String zApiPatchToDb, String jsonReqBody) {
-
-
-  USBSerial.println("PzApiPatchToDb: " + zApiPatchToDb);
-  USBSerial.println("jsonReqBody: " + jsonReqBody);
-
-
-
+  // USBSerial.println("PzApiPatchToDb: " + zApiPatchToDb);
+  // USBSerial.println("jsonReqBody: " + jsonReqBody);
   // Effectuer la requête PATCH pour modifier un enregistrement
   http.begin(zApiPatchToDb);
   http.addHeader("Content-Type", "application/json");
@@ -143,11 +133,6 @@ static void patchToDB(String zApiPatchToDb, String jsonReqBody) {
 }
 
 
-
-
-
-
-
 void postIncStartNumber(){
   USBSerial.println("C'est la procédure postIncStartNumber !");
   // calcul le prochain numéro de fromage
@@ -161,12 +146,6 @@ void postIncStartNumber(){
   // Patch la requête à la DB
   patchToDB(apiPatchTagCmd, jsonReqBody);
 }
-
-
-
-
-
-
 
 
 void clearAllProcedures(){
@@ -262,11 +241,11 @@ void procAddInventaire(){
   // Créer le corps de la requête POST
   StaticJsonDocument<1024> reqBody;
   reqBody["Index"] = zStartNumber;
-  reqBody["UID RFID"] = newRFID;
+  reqBody["Puce NFC"] = newRFID;
   String jsonReqBody;
   serializeJson(reqBody, jsonReqBody);
   // Post la requête à la DB
-  // postToDB(apiPostNewFromageInventaire, jsonReqBody);
+  postToDB(apiPostNewFromageInventaire, jsonReqBody);
 
   // Incrémente le numéro de fromage dans la DB
   postIncStartNumber();
