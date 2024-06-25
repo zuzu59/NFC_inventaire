@@ -1,4 +1,4 @@
-// zf240616.1427
+// zf240625.0957
 
 String zCmdType = "";
 String zCmdComment = "";
@@ -108,7 +108,7 @@ static void postToDB(String zApiPostToDb, String jsonReqBody) {
 
 void clearAllProcedures(){
   USBSerial.println("C'est la procédure clearAllProcedures !");
-  zProcAddFromage = false; leds[ledProcAddFromage] = CRGB::Black; FastLED.show();
+  // zProcAddFromage = false; leds[ledProcAddFromage] = CRGB::Black; FastLED.show();
   zProcAddInventaire = false; leds[ledProcAddInventaire] = CRGB::Black; FastLED.show();
   zProcAddTagCmd = false; leds[ledProcAddTagCmd] = CRGB::Black; FastLED.show();
   zProcNotation = false; leds[ledProcNotation] = CRGB::Black; FastLED.show();
@@ -195,30 +195,34 @@ void procAddInventaire(){
 
   // Récupère le numéro du fromage à entrer dans l'inventaire depuis le commentaire de getStartNumber
   getStartNumber();
+  
   // Créer le corps de la requête POST
-  StaticJsonDocument<1024> reqBody;
-  reqBody["Index"] = zIndex;
-  c'est ici qu'il faut ajouter le numéro de fromage
-  reqBody["UID RFID"] = newRFID;
-  String jsonReqBody;
-  serializeJson(reqBody, jsonReqBody);
-  // Post la requête à la DB
-  postToDB(apiPostNewFromageInventaire, jsonReqBody);
-
-  il ne faut pas reset le flag pour les fromage suivants
-
-  il faut incrémenter le commentaire getStartNumber de la table tag cmd pour le fromage suivant
-
-  // Reset le flag add tag cmd
-  zProcAddTagCmd = false;
-  delay(300);
-  USBSerial.println("Tag Cmd ajouté !");
-  leds[ledProcAddTagCmd] = CRGB::Black; FastLED.show();
 
 
 
+  // StaticJsonDocument<1024> reqBody;
+  // reqBody["Index"] = zIndex;
+  // c'est ici qu'il faut ajouter le numéro de fromage
+  // reqBody["UID RFID"] = newRFID;
+  // String jsonReqBody;
+  // serializeJson(reqBody, jsonReqBody);
+  // // Post la requête à la DB
+  // postToDB(apiPostNewFromageInventaire, jsonReqBody);
 
-  leds[ledProcAddInventaire] = CRGB::Black; FastLED.show();
+  // il ne faut pas reset le flag pour les fromage suivants
+
+  // il faut incrémenter le commentaire getStartNumber de la table tag cmd pour le fromage suivant
+
+  // // Reset le flag add tag cmd
+  // zProcAddTagCmd = false;
+  // delay(300);
+  // USBSerial.println("Tag Cmd ajouté !");
+  // leds[ledProcAddTagCmd] = CRGB::Black; FastLED.show();
+
+
+
+
+  // leds[ledProcAddInventaire] = CRGB::Black; FastLED.show();
 }
 
 
@@ -243,16 +247,17 @@ void itIsTagCmd(){
   if(zCmdType == "procFromager"){
     procFromager();
   }
+  if(zCmdType == "procAddInventaire"){
+    procAddInventaire();
+  }
   if(zCmdType == "procAddTagCmd"){
     zProcAddTagCmd = true;
     leds[ledProcAddTagCmd] = CRGB::Yellow; FastLED.show();
   }
   if(zCmdType == "procReboot"){
-    zProcAddTagCmd = true;
     procReboot();
   }
   if(zCmdType == "procStop"){
-    zProcAddTagCmd = true;
     procStop();
   }
 }
