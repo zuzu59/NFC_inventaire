@@ -1,4 +1,4 @@
-// zf240625.1030
+// zf240625.1428
 
 String zCmdType = "";
 String zCmdComment = "";
@@ -16,13 +16,15 @@ long zStartNumber = 0;
 // API JSON
 #include <ArduinoJson.h>
 const char* zToken = apiToken;
-long zIndex = 0;
+long zIndex = 0;                // Index du record, peut être multiple et doit être généré à la main 
+long zId = 0;                   // Id (NocoDB) du record, ne peut être que unique et est auto-généré par
 
 const char* apiGetIndexToto = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records?viewId=vwwm6yz0uhytc9er&fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecordToto = apiServerName "/api/v2/tables/mccwrj43jwtogvs/records";
 
 const char* apiGetIndexTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?fields=Index&sort=-Index&limit=1&shuffle=0&offset=0";
 const char* apiPostNewRecordTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records";
+const char* apiPatchTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records";
 const char* apiGetRfidTagCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?viewId=vw68oujklglmmlp3&where=%28UID%20RFID%2Ceq%2Cxxx%29&limit=25&shuffle=0&offset=0";
 const char* apiGetStartNumberCmd = apiServerName "/api/v2/tables/mmkk01cafw4ynyp/records?fields=Comment&where=where%3D%28Type%20cmd%2Ceq%2CgetStartNumber%29&limit=25&shuffle=0&offset=0";
 
@@ -63,6 +65,9 @@ void getStartNumber(){
     leds[ledOk] = CRGB::Red; FastLED.show(); delay(300); leds[ledOk] = CRGB::Black; FastLED.show();
     return;
   }
+  // Récupère  l'id du record"
+  zId = zRecordCmd["list"][0]["d"].as<long>();
+  USBSerial.print("Id: "); USBSerial.println(zId);
   // Récupère  la valeur de StartNumber dans le champ "Comment"
   zStartNumber = zRecordCmd["list"][0]["Comment"].as<long>();
   USBSerial.print("zStartNumber: "); USBSerial.println(zStartNumber);
@@ -108,13 +113,46 @@ static void postToDB(String zApiPostToDb, String jsonReqBody) {
 
 
 
+
+
+
+static void patchToDB(String zApiPatchToDb, String jsonReqBody) {
+  // Effectuer la requête PATCH pour modifier un enregistrement
+  http.begin(zApiPatchToDb);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("xc-token", zToken);
+  int httpCode = http.PATCH(jsonReqBody);
+  if (httpCode > 0) {
+    USBSerial.printf("PATCH request response code: %d\n", httpCode);
+    if (httpCode == HTTP_CODE_OK) {
+      String response = http.getString();
+      USBSerial.println("PATCH request response:");
+      USBSerial.println(response);
+    }
+  } else {
+    USBSerial.println("Error on PATCH request");
+  }
+  http.end();
+}
+
+
+
+
+
+
+
 void postIncStartNumber(){
-
-
-il faut que je trouve comment patcher un record existant dans NocoDB !
-
-
-
+  USBSerial.println("C'est la procédure postIncStartNumber !");
+  // calcul le prochain numéro de fromage
+  zStartNumber++;
+  // Créer le corps de la requête PATCH
+  StaticJsonDocument<1024> reqBody;
+  reqBody["id"] = zId;
+  reqBody["Comment"] = zStartNumber;
+  String jsonReqBody;
+  serializeJson(reqBody, jsonReqBody);
+  // Patch la requête à la DB
+  patchToDB(apiPatchTagCmd, jsonReqBody);
 }
 
 
@@ -221,21 +259,17 @@ void procAddInventaire(){
   String jsonReqBody;
   serializeJson(reqBody, jsonReqBody);
   // Post la requête à la DB
-  postToDB(apiPostNewFromageInventaire, jsonReqBody);
+  // postToDB(apiPostNewFromageInventaire, jsonReqBody);
 
+  postIncStartNumber();
 
-  il faut incrémenter le commentaire getStartNumber de la table tag cmd pour le fromage suivant
-
- il faut avoir un flag pour dire que les suivants c'est des add fromage dans inventaire !
+//  il faut avoir un flag pour dire que les suivants c'est des add fromage dans inventaire !
 
   delay(300);
-  USBSerial.println("Tag Cmd ajouté !");
-  leds[ledProcAddTagCmd] = CRGB::Black; FastLED.show();
-
-
-
-
-  // leds[ledProcAddInventaire] = CRGB::Black; FastLED.show();
+  USBSerial.print("Nouveau fromage ");
+  USBSerial.print(zStartNumber);
+  USBSerial.println(" ajouté dans l'inventaire !");
+  leds[ledProcAddInventaire] = CRGB::Black; FastLED.show();
 }
 
 
