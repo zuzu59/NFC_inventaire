@@ -1,4 +1,4 @@
-// zf240625.0957
+// zf240625.1030
 
 String zCmdType = "";
 String zCmdComment = "";
@@ -106,6 +106,24 @@ static void postToDB(String zApiPostToDb, String jsonReqBody) {
 }
 
 
+
+
+void postIncStartNumber(){
+
+
+il faut que je trouve comment patcher un record existant dans NocoDB !
+
+
+
+}
+
+
+
+
+
+
+
+
 void clearAllProcedures(){
   USBSerial.println("C'est la procédure clearAllProcedures !");
   // zProcAddFromage = false; leds[ledProcAddFromage] = CRGB::Black; FastLED.show();
@@ -195,29 +213,24 @@ void procAddInventaire(){
 
   // Récupère le numéro du fromage à entrer dans l'inventaire depuis le commentaire de getStartNumber
   getStartNumber();
-  
+
   // Créer le corps de la requête POST
+  StaticJsonDocument<1024> reqBody;
+  reqBody["Index"] = zStartNumber;
+  reqBody["UID RFID"] = newRFID;
+  String jsonReqBody;
+  serializeJson(reqBody, jsonReqBody);
+  // Post la requête à la DB
+  postToDB(apiPostNewFromageInventaire, jsonReqBody);
 
 
+  il faut incrémenter le commentaire getStartNumber de la table tag cmd pour le fromage suivant
 
-  // StaticJsonDocument<1024> reqBody;
-  // reqBody["Index"] = zIndex;
-  // c'est ici qu'il faut ajouter le numéro de fromage
-  // reqBody["UID RFID"] = newRFID;
-  // String jsonReqBody;
-  // serializeJson(reqBody, jsonReqBody);
-  // // Post la requête à la DB
-  // postToDB(apiPostNewFromageInventaire, jsonReqBody);
+ il faut avoir un flag pour dire que les suivants c'est des add fromage dans inventaire !
 
-  // il ne faut pas reset le flag pour les fromage suivants
-
-  // il faut incrémenter le commentaire getStartNumber de la table tag cmd pour le fromage suivant
-
-  // // Reset le flag add tag cmd
-  // zProcAddTagCmd = false;
-  // delay(300);
-  // USBSerial.println("Tag Cmd ajouté !");
-  // leds[ledProcAddTagCmd] = CRGB::Black; FastLED.show();
+  delay(300);
+  USBSerial.println("Tag Cmd ajouté !");
+  leds[ledProcAddTagCmd] = CRGB::Black; FastLED.show();
 
 
 
