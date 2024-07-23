@@ -1,4 +1,4 @@
-// zf240604.1743
+// zf240615.1752
 
 // Choix de la connexion WIFI, qu'une seule possibilité !
 // #define zWifiNormal true
@@ -49,6 +49,8 @@ void zWifiTrouble(){
     wifi_creds.push_back(creds5);
     WifiCredentials creds6 = {WIFI_SSID6, WIFI_PASSWORD6};
     wifi_creds.push_back(creds6);
+    WifiCredentials creds7 = {WIFI_SSID7, WIFI_PASSWORD7};
+    wifi_creds.push_back(creds7);
 
     int best_rssi = -1000;
     String best_ssid;
